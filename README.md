@@ -16,20 +16,20 @@ dan bisa diekspor ke JSON, PNG, SVG, atau CSV.
 
 ## Menjalankan
 
-Node.js terpasang di `~/.local/node` (tanpa perlu admin). Supaya `npm` bisa
-dipakai dari terminal mana pun, tambahkan satu baris ini ke `~/.zshrc`:
+**Prasyarat:** [Node.js](https://nodejs.org) versi **22.12+ atau 24 LTS**
+(npm sudah termasuk). Periksa dengan `node -v`.
 
 ```bash
-echo 'export PATH="$HOME/.local/node/bin:$PATH"' >> ~/.zshrc
+git clone https://github.com/Masamune21-dev/nettopo.git
+cd nettopo
+npm install
+npm run dev
 ```
 
-Lalu buka terminal baru dan jalankan:
-
-```bash
-cd ~/Projects/nettopo && npm run dev
-```
-
-Buka <http://localhost:5173>.
+Buka <http://localhost:5173>. Selesai — tidak ada database yang perlu disiapkan
+dan tidak ada server yang perlu dijalankan terpisah. Topologi tersimpan di
+browser Anda sendiri; lihat [Format file JSON](#format-file-json) untuk
+memindahkannya antar komputer.
 
 | Perintah | Kegunaan |
 |---|---|
@@ -38,6 +38,12 @@ Buka <http://localhost:5173>.
 | `npm run preview` | Melihat hasil build produksi |
 | `npm test` | Menjalankan unit test |
 | `npm run test:watch` | Unit test mode watch |
+| `npm run lint` | Pemeriksaan gaya kode |
+
+Hasil `npm run build` berupa berkas statis di `dist/`, jadi bisa ditaruh di
+web server mana pun (nginx, Apache, GitHub Pages) tanpa Node.js di sisi server.
+Satu-satunya yang membutuhkan dev server adalah [asisten AI](#asisten-ai-opsional),
+karena kunci API-nya sengaja ditahan di sisi server.
 
 ---
 

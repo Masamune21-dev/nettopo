@@ -3,8 +3,11 @@
   "configurations": [
     {
       "name": "nettopo",
-      "runtimeExecutable": "/Users/admin/.local/node/bin/npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 5173
     }
   ]
