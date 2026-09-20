@@ -12,6 +12,7 @@ import {
   Redo2,
   Save,
   Search,
+  Sparkles,
   StickyNote,
   Sun,
   Tag,
@@ -370,6 +371,16 @@ export function Toolbar() {
           </>
         )}
       </Menu>
+
+      <button
+        type="button"
+        className="btn"
+        onClick={() => ui.set('aiOpen', true)}
+        title="Asisten AI: konfigurasi, audit, dokumentasi, rapikan, buat dari deskripsi"
+        style={{ color: '#818cf8' }}
+      >
+        <Sparkles size={13} /> <span className="hidden xl:inline">AI</span>
+      </button>
 
       <Menu label="Tambah" icon={<Plus size={13} />}>
         {(close) => (

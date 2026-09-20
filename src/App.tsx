@@ -1,6 +1,7 @@
 import { ReactFlowProvider, useNodesInitialized, useReactFlow } from '@xyflow/react'
 import { PanelLeft } from 'lucide-react'
 import { useEffect, useRef } from 'react'
+import { AiDialog } from '@/components/AiDialog'
 import { Canvas } from '@/components/Canvas'
 import { DevicePalette } from '@/components/DevicePalette'
 import { HelpDialog } from '@/components/HelpDialog'
@@ -84,6 +85,7 @@ function Workspace() {
       </div>
       <ProjectsDialog />
       <HelpDialog />
+      <AiDialog />
       <Toasts />
     </div>
   )

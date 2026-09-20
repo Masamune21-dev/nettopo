@@ -147,6 +147,48 @@ seleksi kotak, drag tengah/kanan untuk menggeser.
 
 ---
 
+## Asisten AI (opsional)
+
+NetTopo bisa disambungkan ke endpoint apa pun yang kompatibel OpenAI — misalnya
+9Router, atau server lokal seperti Ollama. Tanpa pengaturan ini, semua fitur
+lain tetap berjalan normal.
+
+### Mengatur kunci
+
+```bash
+cp .env.example .env
+```
+
+Buka `.env`, isi `AI_API_KEY`, lalu jalankan ulang `npm run dev`.
+
+**Kunci tidak pernah sampai ke browser.** Berkas `.env` hanya dibaca dev server,
+yang menyisipkannya sebagai header `Authorization` saat meneruskan permintaan —
+jadi kunci tidak muncul di tab Network, tidak ikut ter-bundle, dan `.env` sudah
+masuk `.gitignore`. Browser hanya memanggil `/ai/...` di localhost.
+
+### Lima tugas yang tersedia
+
+| Tugas | Keluaran |
+|---|---|
+| **Konfigurasi perangkat** | Konfigurasi siap tempel per perangkat dalam sintaks Junos / VRP / RouterOS, dari VLAN dan trunk yang sudah didokumentasikan |
+| **Audit & saran** | Daftar temuan bertingkat keparahan: titik tunggal kegagalan, jalur cadangan yang tidak terpisah, kapasitas tak seimbang, penamaan tak konsisten |
+| **Dokumentasi jaringan** | Dokumen Markdown: arsitektur, tabel perangkat, tabel sambungan, rancangan VLAN |
+| **Rapikan gambar** | AI menentukan pengelompokan dan arah; penempatan piksel tetap dikerjakan algoritma |
+| **Buat dari deskripsi** | Tulis rancangan dengan kalimat, perangkat dan link dibuatkan dari katalog |
+
+Dua tugas terakhir mengubah kanvas. Keduanya masuk riwayat, jadi bisa
+dibatalkan dengan `Cmd/Ctrl + Z`. Jawaban AI selalu divalidasi dulu dengan
+skema: model yang tidak ada di katalog, port yang tidak dimiliki perangkat,
+atau hostname yang tidak dikenal akan dilewati dan dilaporkan sebagai
+peringatan — bukan diterapkan diam-diam.
+
+### Pertimbangan privasi
+
+Ringkasan topologi — hostname, IP manajemen, VLAN, dan detail sambungan —
+dikirim ke endpoint yang Anda pasang. Untuk topologi yang sensitif, arahkan
+`AI_BASE_URL` ke model lokal (mis. `http://localhost:11434/v1`) agar datanya
+tidak meninggalkan mesin Anda.
+
 ## Menambah model perangkat
 
 Semua spesifikasi hardware ada di satu file: [`src/data/deviceCatalog.ts`](src/data/deviceCatalog.ts).
