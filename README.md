@@ -407,6 +407,38 @@ bawaan, lalu file tersimpan ulang sebagai versi 4.
 
 ---
 
+## Deploy ke Vercel
+
+Hasil build berupa berkas statis, jadi deploy-nya sederhana: hubungkan repo ini
+di dashboard Vercel, biarkan semua pengaturan bawaan (Vercel mengenali Vite
+sendiri), lalu **Deploy**.
+
+Agar asisten AI ikut hidup, isi dua Environment Variables di Vercel —
+Settings → Environment Variables:
+
+| Nama | Isi |
+|---|---|
+| `AI_BASE_URL` | alamat endpoint kompatibel OpenAI, mis. `https://endpoint-anda.example/v1` |
+| `AI_API_KEY` | kunci API dari penyedia endpoint itu |
+
+Keduanya **tanpa awalan `VITE_`**, dan itu disengaja: variabel berawalan
+`VITE_` ikut masuk ke berkas JavaScript yang diunduh browser. Tanpa awalan itu,
+kunci hanya terbaca saat build dan oleh fungsi server.
+
+Permintaan AI dari browser menuju `/ai/...`, lalu diteruskan oleh fungsi
+[`api/ai/[...path].ts`](api/ai/) yang menempelkan header `Authorization` di
+sisi server — persis seperti yang dilakukan dev server saat pengembangan.
+Fungsi itu berjalan di Edge runtime dan meneruskan balasan sebagai aliran,
+sehingga jawaban panjang mulai tampil dalam hitungan detik.
+
+Sudah diuji: dengan kedua variabel terisi, aplikasi hasil build mengenali AI
+sebagai siap pakai, dan nilai kuncinya tidak ada di dalam bundle.
+
+Tanpa kedua variabel itu aplikasi tetap jalan normal — hanya tombol AI yang
+menampilkan petunjuk pengaturan.
+
+---
+
 ## Memperbarui tangkapan layar
 
 Gambar di README dibuat ulang lewat skrip, bukan ditangkap manual, supaya
