@@ -192,8 +192,10 @@ Balas HANYA dengan JSON, tanpa penjelasan di luar JSON, berbentuk:
 
 Aturan:
 - "modelId" HARUS salah satu id dari daftar katalog di bawah, tulis persis.
-- "aPort"/"bPort" HARUS nama interface yang benar-benar dimiliki model itu,
-  sesuai pola penamaan vendornya.
+- "aPort"/"bPort" HARUS disalin dari rentang port model itu di daftar katalog
+  di bawah. JANGAN mengarang nama interface. Contoh: kalau katalog menulis
+  "100GE1/0/1..100GE1/0/6", maka nama yang sah hanya 100GE1/0/1 sampai
+  100GE1/0/6 — bukan 100GE0/0/25 atau bentuk lain.
 - Satu port hanya boleh dipakai satu link.
 - Hostname mengikuti pola yang jelas, mis. SSW-JKT-01, SW-ACC-03.
 - Kecepatan link ikut port yang paling lambat di antara kedua sisi.

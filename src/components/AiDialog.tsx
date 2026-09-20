@@ -127,6 +127,9 @@ export function AiDialog() {
         user: task.buildUser(topo, instruction.trim()),
         json: task.output === 'json',
         signal: abort.current.signal,
+        // Teks panjang (konfigurasi, dokumentasi) tampil bertahap sambil
+        // datang, jadi tidak terasa menggantung.
+        onChunk: task.output === 'text' ? setResult : undefined,
       })
 
       if (task.output === 'text') {

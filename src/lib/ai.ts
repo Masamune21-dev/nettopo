@@ -66,8 +66,29 @@ export interface ChatOptions {
   json?: boolean
   temperature?: number
   signal?: AbortSignal
+  /** Dipanggil tiap potongan teks datang, berisi teks lengkap sejauh ini. */
+  onChunk?: (textSoFar: string) => void
 }
 
+/** Satu potongan balasan bergaya OpenAI, baik streaming maupun tidak. */
+interface ChunkShape {
+  choices?: {
+    delta?: { content?: string | null }
+    message?: { content?: string | null }
+  }[]
+}
+
+const pickContent = (obj: ChunkShape): string =>
+  obj.choices?.[0]?.delta?.content ?? obj.choices?.[0]?.message?.content ?? ''
+
+/**
+ * Kirim percakapan dan kembalikan teks lengkapnya.
+ *
+ * Endpoint bisa membalas dua bentuk: satu objek JSON, atau aliran SSE
+ * (`data: {...}` baris demi baris). 9Router memakai SSE secara bawaan, jadi
+ * keduanya ditangani di sini — sekaligus memberi umpan balik bertahap lewat
+ * `onChunk` supaya keluaran panjang tidak terasa menggantung.
+ */
 export async function chat({
   model,
   system,
@@ -75,6 +96,7 @@ export async function chat({
   json = false,
   temperature = 0.2,
   signal,
+  onChunk,
 }: ChatOptions): Promise<string> {
   const res = await fetch('/ai/chat/completions', {
     method: 'POST',
@@ -83,6 +105,7 @@ export async function chat({
     body: JSON.stringify({
       model,
       temperature,
+      stream: true,
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: user },
@@ -92,12 +115,46 @@ export async function chat({
   })
   if (!res.ok) throw await toError(res)
 
-  const body = (await res.json()) as {
-    choices?: { message?: { content?: string } }[]
+  const isStream = (res.headers.get('content-type') ?? '').includes('text/event-stream')
+  if (!isStream || !res.body) {
+    const body = (await res.json()) as ChunkShape
+    const content = pickContent(body)
+    if (!content) throw new AiError('Model tidak mengembalikan jawaban.')
+    onChunk?.(content)
+    return content
   }
-  const content = body.choices?.[0]?.message?.content
-  if (!content) throw new AiError('Model tidak mengembalikan jawaban.')
-  return content
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let text = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    // Kejadian SSE dipisahkan baris kosong; potongan terakhir bisa belum utuh.
+    const events = buffer.split('\n\n')
+    buffer = events.pop() ?? ''
+
+    for (const event of events) {
+      for (const line of event.split('\n')) {
+        if (!line.startsWith('data:')) continue
+        const payload = line.slice(5).trim()
+        if (!payload || payload === '[DONE]') continue
+        try {
+          text += pickContent(JSON.parse(payload) as ChunkShape)
+        } catch {
+          // Potongan rusak diabaikan; sisanya tetap terbaca.
+        }
+      }
+    }
+    if (text) onChunk?.(text)
+  }
+
+  if (!text) throw new AiError('Model tidak mengembalikan jawaban.')
+  return text
 }
 
 /**

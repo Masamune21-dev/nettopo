@@ -176,6 +176,10 @@ masuk `.gitignore`. Browser hanya memanggil `/ai/...` di localhost.
 | **Rapikan gambar** | AI menentukan pengelompokan dan arah; penempatan piksel tetap dikerjakan algoritma |
 | **Buat dari deskripsi** | Tulis rancangan dengan kalimat, perangkat dan link dibuatkan dari katalog |
 
+Endpoint yang membalas dalam bentuk aliran SSE maupun satu objek JSON
+sama-sama didukung; untuk keluaran panjang, teksnya tampil bertahap sambil
+datang.
+
 Dua tugas terakhir mengubah kanvas. Keduanya masuk riwayat, jadi bisa
 dibatalkan dengan `Cmd/Ctrl + Z`. Jawaban AI selalu divalidasi dulu dengan
 skema: model yang tidak ada di katalog, port yang tidak dimiliki perangkat,

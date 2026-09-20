@@ -1,4 +1,4 @@
-import { DEVICE_CATALOG, getModel } from '@/data/deviceCatalog'
+import { DEVICE_CATALOG, getModel, type PortTemplate } from '@/data/deviceCatalog'
 import { ifaceSummary } from '@/lib/iface'
 import { summarizeTrunk } from '@/lib/trunks'
 import type { Topology } from '@/types/topology'
@@ -93,9 +93,26 @@ export function describeTopology(topo: Topology, opts: { withIds?: boolean } = {
   return lines.join('\n')
 }
 
-/** Daftar model perangkat yang tersedia, untuk fitur "buat dari deskripsi". */
+/**
+ * Daftar model perangkat lengkap dengan RENTANG NAMA PORT-nya.
+ *
+ * Rentang port ini wajib ada: tanpa itu model bahasa akan menebak nama
+ * interface (mis. "100GE0/0/25" untuk perangkat yang sebenarnya memakai
+ * "100GE1/0/1".."100GE1/0/6"), dan semua link yang dibuatnya akan ditolak
+ * saat divalidasi.
+ */
 export function describeCatalog(): string {
+  const portRange = (t: PortTemplate): string => {
+    const suffix = t.suffix ?? ''
+    const first = `${t.prefix}${t.startIndex}${suffix}`
+    if (t.count === 1) return `${first} (${t.speed})`
+    const last = `${t.prefix}${t.startIndex + t.count - 1}${suffix}`
+    return `${first}..${last} (${t.count}× ${t.speed})`
+  }
+
   return DEVICE_CATALOG.map(
-    (m) => `- ${m.id} = ${m.vendor} ${m.model} (${ROLE_LABEL[m.role]})${m.note ? ` — ${m.note}` : ''}`,
+    (m) =>
+      `- ${m.id} = ${m.vendor} ${m.model} (${ROLE_LABEL[m.role]})\n` +
+      `    port: ${m.ports.map(portRange).join('; ')}`,
   ).join('\n')
 }
