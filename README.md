@@ -5,7 +5,9 @@ dengan katalog perangkat yang sesuai jaringan ISP di Indonesia: **Juniper MX,
 switch & SSW Huawei, MikroTik CRS dan CCR**.
 
 Mendukung **link aggregation / bonding** — Eth-Trunk (Huawei), ae (Juniper),
-bond (MikroTik) — lengkap dengan daftar port anggotanya.
+bond (MikroTik) — lengkap dengan daftar port anggotanya, serta **VLAN dan
+link-type per interface** (access / trunk / hybrid / routed) seperti di
+perangkat aslinya.
 
 Semua data disimpan di browser Anda sendiri (tidak ada server, tidak ada login),
 dan bisa diekspor ke JSON, PNG, SVG, atau CSV.
@@ -35,6 +37,7 @@ Buka <http://localhost:5173>.
 | `npm run build` | Build produksi ke `dist/` |
 | `npm run preview` | Melihat hasil build produksi |
 | `npm test` | Menjalankan unit test |
+| `npm run test:watch` | Unit test mode watch |
 
 ---
 
@@ -52,6 +55,39 @@ Buka <http://localhost:5173>.
    SSW/agregasi → distribusi → akses.
 6. **Simpan** menyimpan ke browser; ada juga autosave setiap 1,5 detik setelah
    perubahan terakhir.
+7. **Ekspor** ke PNG/SVG untuk laporan, JSON untuk cadangan, atau CSV untuk
+   rekap. Ekspor CSV menghasilkan tiga berkas: `-perangkat.csv`, `-link.csv`,
+   dan `-interface.csv` — yang terakhir berisi link-type, PVID, VLAN
+   tagged/untagged, dan IP setiap interface.
+
+### VLAN & mode interface
+
+> **Catatan istilah:** "Eth-Trunk" (bonding) dan "link-type trunk" (VLAN
+> bertag) sama-sama memakai kata *trunk* tetapi berbeda hal. Di aplikasi ini
+> bagian **Trunk / bonding** mengurus agregasi port, sedangkan **link-type**
+> mengurus VLAN.
+
+Setiap interface — port fisik maupun Eth-Trunk — punya baris pengaturan
+sendiri di panel kanan:
+
+| Link-type | Field yang muncul | Setara di perangkat |
+|---|---|---|
+| **Access** | VLAN | `port link-type access` + `port default vlan 100` |
+| **Trunk** | PVID + daftar VLAN tagged | `port link-type trunk` + `port trunk allow-pass vlan …` |
+| **Hybrid** | PVID + tagged + untagged | `port link-type hybrid` |
+| **Routed / L3** | Alamat IP | interface L3 ber-IP (MX, CCR, L3 switch) |
+
+- Daftar VLAN ditulis gaya CLI: `100,200,300-310`. Kotaknya berubah merah
+  kalau formatnya salah, dan alasannya muncul saat disorot.
+- Di kanvas tiap interface diberi badge kecil: **A100** (access VLAN 100),
+  **T** (trunk), **H** (hybrid), **L3**. Detail lengkapnya muncul di tooltip.
+- Label pada kabel otomatis mengambil VLAN atau IP dari konfigurasi
+  interface-nya — jadi tidak perlu mengetik dua kali.
+- **Isi massal:** centang banyak port sekaligus, klik **VLAN**, isi sekali,
+  lalu **Terapkan** — praktis untuk switch 48 port.
+- Pemeriksaan otomatis menandai: daftar VLAN yang tidak sah, port access yang
+  VLAN-nya kosong, PVID di luar daftar tagged, link-type berbeda di dua ujung
+  link, dan VLAN yang hanya ada di satu sisi.
 
 ### Bonding / link aggregation
 
@@ -133,7 +169,7 @@ atau dibaca oleh skrip lain. Strukturnya (lihat [`src/types/topology.ts`](src/ty
 
 ```jsonc
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "project": { "id": "...", "name": "Backbone Jakarta", "site": "POP-JKT-1", "updatedAt": "..." },
   "devices": [
     {
@@ -141,12 +177,22 @@ atau dibaca oleh skrip lain. Strukturnya (lihat [`src/types/topology.ts`](src/ty
       "role": "core-router", "mgmtIp": "10.10.0.1", "loopback": "10.255.0.1",
       "site": "POP-JKT-1", "notes": "", "position": { "x": 380, "y": 20 },
       "ports": [
+        // linkType: none | access | trunk | hybrid | routed
         { "id": "p_1", "name": "et-0/0/0", "speed": "100G", "media": "qsfp28",
-          "description": "to SSW-01", "side": "left" }
+          "description": "to SSW-01", "side": "left",
+          "linkType": "routed", "pvid": null, "allowedVlans": "",
+          "untaggedVlans": "", "ipAddress": "10.0.0.1/30" },
+        { "id": "p_2", "name": "et-0/0/1", "speed": "100G", "media": "qsfp28",
+          "description": "", "side": "right",
+          "linkType": "trunk", "pvid": 1, "allowedVlans": "1,100,200,300-305",
+          "untaggedVlans": "", "ipAddress": "" }
       ],
+      // Eth-Trunk juga punya link-type & VLAN sendiri, sama seperti port fisik
       "trunks": [
         { "id": "trk_1", "name": "ae0", "mode": "lacp",
-          "memberIds": ["p_3", "p_4"], "description": "", "side": "left" }
+          "memberIds": ["p_3", "p_4"], "description": "", "side": "left",
+          "linkType": "trunk", "pvid": 1, "allowedVlans": "1,100,200",
+          "untaggedVlans": "", "ipAddress": "" }
       ]
     }
   ],
@@ -171,8 +217,9 @@ atau dibaca oleh skrip lain. Strukturnya (lihat [`src/types/topology.ts`](src/ty
 File yang diimpor divalidasi dengan zod; kalau ada yang tidak sesuai, aplikasi
 menyebutkan field mana yang bermasalah dan tidak menimpa pekerjaan Anda.
 
-File **`schemaVersion: 1`** (sebelum ada trunk) tetap bisa dibuka — field baru
-terisi nilai bawaan, dan file akan tersimpan ulang sebagai versi 2.
+File lama tetap bisa dibuka: **versi 1** (sebelum ada trunk) dan **versi 2**
+(sebelum ada VLAN) — field baru terisi nilai bawaan, lalu file tersimpan ulang
+sebagai versi 3.
 
 ---
 

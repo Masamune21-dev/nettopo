@@ -121,6 +121,11 @@ describe('nextPortName', () => {
     media: 'rj45',
     description: '',
     side: 'left',
+    linkType: 'none',
+    pvid: null,
+    allowedVlans: '',
+    untaggedVlans: '',
+    ipAddress: '',
   })
 
   it('melewati nama yang sudah dipakai', () => {

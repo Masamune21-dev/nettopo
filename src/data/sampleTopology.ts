@@ -1,8 +1,8 @@
 import { uid } from '@/lib/id'
-import { buildPorts } from '@/lib/ports'
+import { buildPorts, DEFAULT_SWITCHING } from '@/lib/ports'
 import { nextTrunkName } from '@/lib/trunks'
 import type { AppEdge, AppNode, DeviceNodeData } from '@/store/types'
-import type { LinkKind, LinkMedia, Speed, Trunk } from '@/types/topology'
+import type { LinkKind, LinkMedia, Port, Speed, Trunk } from '@/types/topology'
 import { type DeviceModel, getModel } from './deviceCatalog'
 
 interface Placed {
@@ -43,6 +43,13 @@ const portId = (d: Placed, name: string): string => {
   return p.id
 }
 
+/** Atur link-type / VLAN / IP sebuah port berdasarkan namanya. */
+function cfg(d: Placed, portName: string, patch: Partial<Port>): void {
+  const port = d.data.ports.find((p) => p.name === portName)
+  if (!port) throw new Error(`Port ${portName} tidak ada di ${d.data.hostname}`)
+  Object.assign(port, patch)
+}
+
 /** Buat trunk (Eth-Trunk / ae / bond) dari beberapa port bernama. */
 function trunk(d: Placed, memberNames: string[]): Trunk {
   const t: Trunk = {
@@ -52,6 +59,7 @@ function trunk(d: Placed, memberNames: string[]): Trunk {
     memberIds: memberNames.map((n) => portId(d, n)),
     description: '',
     side: d.data.trunks.length % 2 === 0 ? 'left' : 'right',
+    ...DEFAULT_SWITCHING,
   }
   d.data.trunks.push(t)
   return t
@@ -102,9 +110,33 @@ export function sampleTopology(): { nodes: AppNode[]; edges: AppEdge[]; name: st
   const crs = device('mikrotik-crs309-1g-8sp', 'CRS309-AGG-01', '10.10.0.31', 'JKT-NODE-A', 120, 900)
   const sw = device('huawei-s5731-s24t4x', 'S5731-ACC-01', '10.10.0.41', 'JKT-NODE-A', 660, 900)
 
+  // Uplink L3 ber-IP /30, seperti backbone sungguhan.
+  cfg(net, 'link1', { linkType: 'routed', ipAddress: '103.10.0.1/30' })
+  cfg(mx, 'et-0/0/0', { linkType: 'routed', ipAddress: '103.10.0.2/30', description: 'ke UPSTREAM-IX' })
+  cfg(mx, 'et-0/0/1', { linkType: 'routed', ipAddress: '10.0.0.1/30', description: 'ke SSW-JKT-01' })
+  cfg(mx, 'et-0/0/2', { linkType: 'routed', ipAddress: '10.0.0.5/30', description: 'ke SSW-JKT-02' })
+  cfg(ssw1, '100GE1/0/1', { linkType: 'routed', ipAddress: '10.0.0.2/30' })
+  cfg(ssw2, '100GE1/0/1', { linkType: 'routed', ipAddress: '10.0.0.6/30' })
+
   // Bonding: Eth-Trunk1 di sisi Huawei ↔ bond1 di sisi MikroTik, 2× 10G = 20G.
   const ethTrunk1 = trunk(ssw1, ['10GE1/0/1', '10GE1/0/2'])
   const bond1 = trunk(ccr, ['sfp-sfpplus1', 'sfp-sfpplus2'])
+
+  // Kedua ujung agregasi dibawa sebagai trunk VLAN yang sama.
+  const carried = { linkType: 'trunk' as const, pvid: 1, allowedVlans: '1,100,200,300-305' }
+  Object.assign(ethTrunk1, carried)
+  Object.assign(bond1, carried)
+
+  // Distribusi ke akses: trunk VLAN pelanggan; port pelanggan mode access.
+  cfg(ssw2, '10GE1/0/1', { linkType: 'trunk', pvid: 1, allowedVlans: '1,100,200' })
+  cfg(ccr, 'sfp-sfpplus3', { linkType: 'trunk', pvid: 1, allowedVlans: '1,100,200' })
+  cfg(ccr, 'sfp-sfpplus4', { linkType: 'trunk', pvid: 1, allowedVlans: '1,100,200' })
+  cfg(crs, 'sfp-sfpplus1', { linkType: 'trunk', pvid: 1, allowedVlans: '1,100,200' })
+  cfg(ccr, 'sfp-sfpplus5', { linkType: 'trunk', pvid: 1, allowedVlans: '1,100,200' })
+  cfg(sw, 'XGE0/0/1', { linkType: 'trunk', pvid: 1, allowedVlans: '1,100,200' })
+  cfg(sw, 'GE0/0/1', { linkType: 'access', pvid: 100, description: 'Pelanggan A' })
+  cfg(sw, 'GE0/0/2', { linkType: 'access', pvid: 100, description: 'Pelanggan B' })
+  cfg(sw, 'GE0/0/3', { linkType: 'access', pvid: 200, description: 'CCTV' })
 
   const group: AppNode = {
     id: uid('grp'),
@@ -125,7 +157,7 @@ export function sampleTopology(): { nodes: AppNode[]; edges: AppEdge[]; name: st
     edge(ssw1, ethTrunk1.id, ccr, bond1.id, '10G', { kind: 'lacp' }),
     link(ssw2, '10GE1/0/1', ccr, 'sfp-sfpplus3', '10G', { kind: 'backup', label: 'Backup' }),
     link(ccr, 'sfp-sfpplus4', crs, 'sfp-sfpplus1', '10G'),
-    link(ccr, 'sfp-sfpplus5', sw, 'XGE0/0/1', '10G', { vlans: '100,200' }),
+    link(ccr, 'sfp-sfpplus5', sw, 'XGE0/0/1', '10G'),
   ]
 
   return { nodes, edges, name: 'Contoh — Backbone Jakarta', site: 'POP-JKT-1' }

@@ -2,6 +2,15 @@ import type { DeviceModel, PortTemplate } from '@/data/deviceCatalog'
 import type { Media, Port, Speed } from '@/types/topology'
 import { uid } from './id'
 
+/** Konfigurasi L2/L3 bawaan untuk interface yang baru dibuat. */
+export const DEFAULT_SWITCHING = {
+  linkType: 'none',
+  pvid: null,
+  allowedVlans: '',
+  untaggedVlans: '',
+  ipAddress: '',
+} as const
+
 export interface ExpandedPort {
   name: string
   speed: Speed
@@ -36,6 +45,7 @@ export function buildPorts(model: DeviceModel): Port[] {
     media: p.media,
     description: '',
     side: index % 2 === 0 ? ('left' as const) : ('right' as const),
+    ...DEFAULT_SWITCHING,
   }))
 }
 

@@ -1,10 +1,11 @@
-import { Link2, Plus, Trash2 } from 'lucide-react'
+import { Link2, Plus, Trash2, Wand2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { trunkOfPort } from '@/lib/trunks'
 import { deviceUsage } from '@/lib/usage'
 import { useTopologyStore } from '@/store/useTopologyStore'
 import type { DeviceNode } from '@/store/types'
 import { MEDIA, SPEED_COLOR, SPEEDS } from '@/types/topology'
+import { SwitchingFields, type SwitchingValue } from './SwitchingFields'
 import { TrunkSection } from './TrunkSection'
 
 export function PortTable({ device }: { device: DeviceNode }) {
@@ -13,9 +14,18 @@ export function PortTable({ device }: { device: DeviceNode }) {
   const addPort = useTopologyStore((s) => s.addPort)
   const removePort = useTopologyStore((s) => s.removePort)
   const createTrunk = useTopologyStore((s) => s.createTrunk)
+  const updatePorts = useTopologyStore((s) => s.updatePorts)
   const [onlyUsed, setOnlyUsed] = useState(false)
   const [filter, setFilter] = useState('')
   const [picked, setPicked] = useState<string[]>([])
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulk, setBulk] = useState<SwitchingValue>({
+    linkType: 'access',
+    pvid: null,
+    allowedVlans: '',
+    untaggedVlans: '',
+    ipAddress: '',
+  })
 
   const usage = useMemo(
     () => deviceUsage(device.id, device.data.trunks, edges),
@@ -76,8 +86,45 @@ export function PortTable({ device }: { device: DeviceNode }) {
           >
             <Link2 size={11} /> Jadikan trunk
           </button>
-          <button type="button" className="btn px-1.5 py-0.5 text-[11px]" onClick={() => setPicked([])}>
+          <button
+            type="button"
+            className="btn px-1.5 py-0.5 text-[11px]"
+            onClick={() => setBulkOpen((v) => !v)}
+            title="Terapkan link-type dan VLAN ke semua port terpilih"
+            style={{ color: bulkOpen ? '#a855f7' : undefined }}
+          >
+            <Wand2 size={11} /> VLAN
+          </button>
+          <button
+            type="button"
+            className="btn px-1.5 py-0.5 text-[11px]"
+            onClick={() => {
+              setPicked([])
+              setBulkOpen(false)
+            }}
+          >
             Batal
+          </button>
+        </div>
+      ) : null}
+
+      {pickedValid.length > 0 && bulkOpen ? (
+        <div
+          className="mb-1.5 rounded-md border px-2 py-1.5"
+          style={{ borderColor: 'var(--border)', background: 'var(--panel-2)' }}
+        >
+          <span className="label mb-0">Terapkan ke {pickedValid.length} port</span>
+          <SwitchingFields value={bulk} onChange={(patch) => setBulk((b) => ({ ...b, ...patch }))} />
+          <button
+            type="button"
+            className="btn btn-primary mt-1.5 w-full justify-center py-0.5 text-[11px]"
+            onClick={() => {
+              updatePorts(device.id, pickedValid, bulk)
+              setPicked([])
+              setBulkOpen(false)
+            }}
+          >
+            Terapkan
           </button>
         </div>
       ) : null}
@@ -209,6 +256,11 @@ export function PortTable({ device }: { device: DeviceNode }) {
                   onChange={(e) => updatePort(device.id, p.id, { description: e.target.value })}
                 />
               </div>
+
+              <SwitchingFields
+                value={p}
+                onChange={(patch) => updatePort(device.id, p.id, patch)}
+              />
             </li>
           )
         })}

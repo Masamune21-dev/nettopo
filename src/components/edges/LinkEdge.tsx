@@ -7,6 +7,7 @@ import {
   useStore,
 } from '@xyflow/react'
 import { memo } from 'react'
+import { ifaceVlanLabel } from '@/lib/iface'
 import { summarizeTrunk } from '@/lib/trunks'
 import { useUiStore } from '@/store/useUiStore'
 import type { AppEdge, AppNode } from '@/store/types'
@@ -36,18 +37,26 @@ function LinkEdgeInner({
       const n = node.internals.userNode as AppNode
       if (!isDeviceNode(n)) return '\u0000'
       const trunk = n.data.trunks.find((t) => t.id === handle)
-      if (trunk) return `${trunk.name}\u0001${summarizeTrunk(trunk, n.data.ports).composition}`
+      if (trunk) {
+        return `${trunk.name}\u0001${summarizeTrunk(trunk, n.data.ports).composition}\u0001${ifaceVlanLabel(trunk)}`
+      }
       const port = n.data.ports.find((p) => p.id === handle)
-      return port ? `${port.name}\u0001` : '\u0000'
+      return port ? `${port.name}\u0001\u0001${ifaceVlanLabel(port)}` : '\u0000'
     }
     return `${describe(source, edge?.sourceHandle)}\u0002${describe(target, edge?.targetHandle)}`
   })
 
   const [aSide, bSide] = endpoints.split('\u0002').map((part) => {
-    const [name, composition] = part.split('\u0001')
-    return { name: name === '\u0000' ? '' : (name ?? ''), composition: composition ?? '' }
+    const [name, composition, vlan] = part.split('\u0001')
+    return {
+      name: name === '\u0000' ? '' : (name ?? ''),
+      composition: composition ?? '',
+      vlan: vlan ?? '',
+    }
   })
   const bundle = aSide?.composition || bSide?.composition
+  // VLAN diambil dari konfigurasi interface; kolom VLAN pada link hanya penimpa manual.
+  const vlanLabel = data?.vlans ? `vl ${data.vlans}` : aSide?.vlan || bSide?.vlan || ''
 
   // Arah keluar kabel dihitung dari posisi relatif kedua ujung, bukan dari sisi
   // handle-nya. Tanpa ini kabel sering melingkar balik saat port ada di sisi
@@ -121,9 +130,7 @@ function LinkEdgeInner({
           {kind === 'lacp' ? (
             <span style={{ color: 'var(--muted)' }}>{bundle ? 'LACP' : 'bundle'}</span>
           ) : null}
-          {data?.vlans ? (
-            <span style={{ color: 'var(--muted)' }}>vl {data.vlans}</span>
-          ) : null}
+          {vlanLabel ? <span style={{ color: 'var(--muted)' }}>{vlanLabel}</span> : null}
           {data?.label ? <span style={{ color: 'var(--muted)' }}>{data.label}</span> : null}
         </div>
 

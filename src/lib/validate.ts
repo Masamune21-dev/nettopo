@@ -1,4 +1,6 @@
+import { ifaceVlans, type IfaceConfig } from '@/lib/iface'
 import { summarizeTrunk } from '@/lib/trunks'
+import { formatVlanList, parseVlanList } from '@/lib/vlans'
 import type { AppEdge, AppNode } from '@/store/types'
 import { isDeviceNode } from '@/store/types'
 
@@ -14,6 +16,17 @@ export interface Issue {
  * Pemeriksaan ringan yang tidak menghalangi menggambar — hasilnya tampil
  * sebagai daftar peringatan yang bisa diklik untuk melompat ke objeknya.
  */
+function sideConfig(
+  device: { data: { ports: IfaceConfig[]; trunks: (IfaceConfig & { id: string })[] } } | undefined,
+  handle: string | null | undefined,
+): IfaceConfig | null {
+  if (!device || !handle) return null
+  const trunk = device.data.trunks.find((t) => t.id === handle)
+  if (trunk) return trunk
+  const port = (device.data.ports as (IfaceConfig & { id: string })[]).find((p) => p.id === handle)
+  return port ?? null
+}
+
 export function validateTopology(nodes: AppNode[], edges: AppEdge[]): Issue[] {
   const issues: Issue[] = []
   const devices = nodes.filter(isDeviceNode)
@@ -42,6 +55,60 @@ export function validateTopology(nodes: AppNode[], edges: AppEdge[]): Issue[] {
   for (const [host, count] of byHost) {
     if (count > 1) {
       issues.push({ id: `host-${host}`, level: 'warn', text: `Hostname "${host}" dipakai ${count} kali` })
+    }
+  }
+
+  // VLAN: sintaks salah, access tanpa VLAN, PVID di luar daftar tagged
+  for (const d of devices) {
+    const ifaces: { name: string; cfg: IfaceConfig }[] = [
+      ...d.data.ports.map((p) => ({ name: p.name, cfg: p })),
+      ...d.data.trunks.map((t) => ({ name: t.name, cfg: t })),
+    ]
+    for (const { name, cfg } of ifaces) {
+      for (const [field, text] of [
+        ['tagged', cfg.allowedVlans],
+        ['untagged', cfg.untaggedVlans],
+      ] as const) {
+        const parsed = parseVlanList(text)
+        if (!parsed.ok) {
+          issues.push({
+            id: `vlan-syntax-${d.id}-${name}-${field}`,
+            level: 'warn',
+            nodeId: d.id,
+            text: `${d.data.hostname} ${name}: daftar VLAN ${field} tidak sah — ${parsed.error}`,
+          })
+        }
+      }
+
+      if (cfg.linkType === 'access' && !cfg.pvid) {
+        issues.push({
+          id: `vlan-access-${d.id}-${name}`,
+          level: 'info',
+          nodeId: d.id,
+          text: `${d.data.hostname} ${name} mode access tapi VLAN-nya belum diisi`,
+        })
+      }
+
+      if (cfg.linkType === 'routed' && !cfg.ipAddress) {
+        issues.push({
+          id: `ip-empty-${d.id}-${name}`,
+          level: 'info',
+          nodeId: d.id,
+          text: `${d.data.hostname} ${name} mode routed tapi IP-nya belum diisi`,
+        })
+      }
+
+      if (cfg.linkType === 'trunk' && cfg.pvid) {
+        const tagged = parseVlanList(cfg.allowedVlans)
+        if (tagged.ok && tagged.vlans.length > 0 && !tagged.vlans.includes(cfg.pvid)) {
+          issues.push({
+            id: `pvid-${d.id}-${name}`,
+            level: 'warn',
+            nodeId: d.id,
+            text: `${d.data.hostname} ${name}: PVID ${cfg.pvid} tidak ada di daftar VLAN tagged`,
+          })
+        }
+      }
     }
   }
 
@@ -102,6 +169,37 @@ export function validateTopology(nodes: AppNode[], edges: AppEdge[]): Issue[] {
         text: `${a?.data.hostname} ${sa.name} ${sa.members} anggota ↔ ${b?.data.hostname} ${sb.name} ${sb.members} anggota`,
       })
     }
+    // VLAN tidak cocok di dua ujung link
+    const cfgA = sideConfig(a, e.sourceHandle)
+    const cfgB = sideConfig(b, e.targetHandle)
+    if (cfgA && cfgB && cfgA.linkType !== 'none' && cfgB.linkType !== 'none') {
+      if (cfgA.linkType !== cfgB.linkType) {
+        issues.push({
+          id: `linktype-${e.id}`,
+          level: 'warn',
+          edgeId: e.id,
+          text: `${a?.data.hostname} ${sa.name} (${cfgA.linkType}) ↔ ${b?.data.hostname} ${sb.name} (${cfgB.linkType}) beda link-type`,
+        })
+      } else if (cfgA.linkType !== 'routed') {
+        const va = ifaceVlans(cfgA)
+        const vb = ifaceVlans(cfgB)
+        const onlyA = va.filter((v) => !vb.includes(v))
+        const onlyB = vb.filter((v) => !va.includes(v))
+        if (onlyA.length || onlyB.length) {
+          const parts = [
+            onlyA.length ? `hanya di ${sa.name}: ${formatVlanList(onlyA)}` : '',
+            onlyB.length ? `hanya di ${sb.name}: ${formatVlanList(onlyB)}` : '',
+          ].filter(Boolean)
+          issues.push({
+            id: `vlan-mismatch-${e.id}`,
+            level: 'warn',
+            edgeId: e.id,
+            text: `VLAN tidak cocok ${a?.data.hostname} ↔ ${b?.data.hostname} — ${parts.join('; ')}`,
+          })
+        }
+      }
+    }
+
     if (sa.isTrunk !== sb.isTrunk) {
       const trunkSide = sa.isTrunk ? { host: a?.data.hostname, n: sa.name } : { host: b?.data.hostname, n: sb.name }
       issues.push({

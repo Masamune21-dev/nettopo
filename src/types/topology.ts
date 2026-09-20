@@ -11,6 +11,39 @@ export type Media = (typeof MEDIA)[number]
 export const LINK_MEDIA = ['fiber', 'copper', 'wireless', 'virtual'] as const
 export type LinkMedia = (typeof LINK_MEDIA)[number]
 
+/**
+ * Mode VLAN pada interface (Huawei: `port link-type`). Hati-hati: "trunk" di
+ * sini berarti port bertag banyak VLAN — beda dengan Eth-Trunk/bonding yang
+ * merupakan agregasi port.
+ */
+export const PORT_MODES = ['none', 'access', 'trunk', 'hybrid', 'routed'] as const
+export type PortMode = (typeof PORT_MODES)[number]
+
+export const PORT_MODE_LABEL: Record<PortMode, string> = {
+  none: 'Belum diatur',
+  access: 'Access (1 VLAN)',
+  trunk: 'Trunk (tagged)',
+  hybrid: 'Hybrid',
+  routed: 'Routed / L3',
+}
+
+/** Singkatan yang tampil sebagai badge kecil di node. */
+export const PORT_MODE_BADGE: Record<PortMode, string> = {
+  none: '',
+  access: 'A',
+  trunk: 'T',
+  hybrid: 'H',
+  routed: 'L3',
+}
+
+export const PORT_MODE_COLOR: Record<PortMode, string> = {
+  none: '#64748b',
+  access: '#10b981',
+  trunk: '#3b82f6',
+  hybrid: '#f59e0b',
+  routed: '#a855f7',
+}
+
 export const TRUNK_MODES = ['lacp', 'static'] as const
 export type TrunkMode = (typeof TRUNK_MODES)[number]
 
@@ -89,6 +122,23 @@ export const SPEED_WIDTH: Record<Speed, number> = {
 
 /* ── Skema (zod) ─────────────────────────────────────────────────────────── */
 
+/**
+ * Konfigurasi L2/L3 yang berlaku sama untuk port fisik maupun Eth-Trunk —
+ * di perangkat asli pun Eth-Trunk punya link-type dan VLAN sendiri.
+ */
+const switchingFields = {
+  /** Huawei: `port link-type`. Dinamai linkType agar tidak tertukar dengan mode LACP pada trunk. */
+  linkType: z.enum(PORT_MODES).default('none'),
+  /** VLAN access, atau native/PVID untuk trunk & hybrid. */
+  pvid: z.number().int().min(1).max(4094).nullable().default(null),
+  /** Daftar VLAN bertag, gaya CLI: "100,200,300-310". */
+  allowedVlans: z.string().default(''),
+  /** Hybrid: VLAN yang keluar tanpa tag. */
+  untaggedVlans: z.string().default(''),
+  /** Mode routed: alamat IP interface, mis. "10.0.0.1/30". */
+  ipAddress: z.string().default(''),
+}
+
 export const portSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -96,6 +146,7 @@ export const portSchema = z.object({
   media: z.enum(MEDIA),
   description: z.string().default(''),
   side: z.enum(['left', 'right']).default('left'),
+  ...switchingFields,
 })
 
 /**
@@ -110,6 +161,7 @@ export const trunkSchema = z.object({
   memberIds: z.array(z.string()),
   description: z.string().default(''),
   side: z.enum(['left', 'right']).default('left'),
+  ...switchingFields,
 })
 
 export const deviceSchema = z.object({
@@ -165,7 +217,7 @@ export const noteSchema = z.object({
 
 export const topologySchema = z.object({
   // Versi 1 (tanpa trunk) tetap diterima: field baru terisi nilai bawaan.
-  schemaVersion: z.union([z.literal(1), z.literal(2)]),
+  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   project: z.object({
     id: z.string(),
     name: z.string(),
@@ -187,5 +239,5 @@ export type TopoGroup = z.infer<typeof groupSchema>
 export type TopoNote = z.infer<typeof noteSchema>
 export type Topology = z.infer<typeof topologySchema>
 
-export const SCHEMA_VERSION = 2 as const
-export const SUPPORTED_SCHEMA_VERSIONS = [1, 2] as const
+export const SCHEMA_VERSION = 3 as const
+export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3] as const

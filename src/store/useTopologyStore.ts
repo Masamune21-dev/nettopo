@@ -10,7 +10,7 @@ import {
 import { create } from 'zustand'
 import { getModel } from '@/data/deviceCatalog'
 import { uid } from '@/lib/id'
-import { buildPorts, nextPortName } from '@/lib/ports'
+import { buildPorts, DEFAULT_SWITCHING, nextPortName } from '@/lib/ports'
 import { isTrunkMember, nextTrunkName, summarizeTrunk, trunkOfPort } from '@/lib/trunks'
 import type { LinkMedia, Port, Speed, Trunk } from '@/types/topology'
 import {
@@ -50,6 +50,7 @@ interface TopologyState {
   addDevice: (modelId: string, position: XYPosition) => void
   updateDevice: (id: string, patch: Partial<DeviceNodeData>) => void
   updatePort: (deviceId: string, portId: string, patch: Partial<Port>) => void
+  updatePorts: (deviceId: string, portIds: string[], patch: Partial<Port>) => void
   addPort: (deviceId: string) => void
   removePort: (deviceId: string, portId: string) => void
   toggleExpanded: (deviceId: string) => void
@@ -315,6 +316,25 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
         ),
       ),
 
+    /** Terapkan satu perubahan ke banyak port sekaligus (mis. set VLAN massal). */
+    updatePorts: (deviceId, portIds, patch) => {
+      if (portIds.length === 0) return
+      const target = new Set(portIds)
+      withHistory(() =>
+        patchNode(deviceId, (n) =>
+          isDeviceNode(n)
+            ? {
+                ...n,
+                data: {
+                  ...n.data,
+                  ports: n.data.ports.map((p) => (target.has(p.id) ? { ...p, ...patch } : p)),
+                },
+              }
+            : n,
+        ),
+      )
+    },
+
     addPort: (deviceId) =>
       withHistory(() =>
         patchNode(deviceId, (n) => {
@@ -326,6 +346,7 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
             media: 'rj45',
             description: '',
             side: n.data.ports.length % 2 === 0 ? 'left' : 'right',
+            ...DEFAULT_SWITCHING,
           }
           return { ...n, data: { ...n.data, ports: [...n.data.ports, port] } }
         }),
@@ -401,6 +422,7 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
         memberIds: [...memberIds],
         description: '',
         side: device.data.trunks.length % 2 === 0 ? 'left' : 'right',
+        ...DEFAULT_SWITCHING,
       }
 
       withHistory(() =>

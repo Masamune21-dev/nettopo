@@ -12,6 +12,11 @@ const trunk = (memberIds: string[], name = 'Eth-Trunk1'): Trunk => ({
   memberIds,
   description: '',
   side: 'left',
+  linkType: 'none',
+  pvid: null,
+  allowedVlans: '',
+  untaggedVlans: '',
+  ipAddress: '',
 })
 
 describe('nextTrunkName', () => {

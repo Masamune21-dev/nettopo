@@ -3,6 +3,7 @@ import { summarizeTrunk } from '@/lib/trunks'
 import { useTopologyStore } from '@/store/useTopologyStore'
 import type { DeviceNode } from '@/store/types'
 import { SPEED_COLOR, TRUNK_MODES } from '@/types/topology'
+import { SwitchingFields } from './SwitchingFields'
 
 const MODE_LABEL: Record<(typeof TRUNK_MODES)[number], string> = {
   lacp: 'LACP (dinamis)',
@@ -117,6 +118,11 @@ export function TrunkSection({
                   </button>
                 ) : null}
               </div>
+
+              <SwitchingFields
+                value={t}
+                onChange={(patch) => updateTrunk(device.id, t.id, patch)}
+              />
 
               <input
                 className="field mt-1.5 px-1 py-0.5 text-[10.5px]"

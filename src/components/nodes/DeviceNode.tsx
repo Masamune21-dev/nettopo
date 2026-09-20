@@ -3,22 +3,40 @@ import { ChevronDown, ChevronRight } from 'lucide-react'
 import { memo, useEffect, useMemo } from 'react'
 import { RoleIcon } from '@/components/ui/RoleIcon'
 import { getModel, VENDOR_META } from '@/data/deviceCatalog'
+import { ifaceBadge, ifaceSummary } from '@/lib/iface'
 import { summarizeTrunk } from '@/lib/trunks'
 import { deviceUsage } from '@/lib/usage'
 import { useTopologyStore } from '@/store/useTopologyStore'
 import type { DeviceNode as DeviceNodeType } from '@/store/types'
-import { ROLE_COLOR, SPEED_COLOR, type Port, type Trunk } from '@/types/topology'
+import { PORT_MODE_COLOR, ROLE_COLOR, SPEED_COLOR, type Port, type Trunk } from '@/types/topology'
+
+/** Badge kecil penanda link-type: A100 (access), T (trunk), H (hybrid), L3. */
+function ModeBadge({ config }: { config: Parameters<typeof ifaceBadge>[0] }) {
+  const text = ifaceBadge(config)
+  if (!text) return null
+  const color = PORT_MODE_COLOR[config.linkType]
+  return (
+    <span
+      className="shrink-0 rounded-sm px-[3px] text-[8px] font-bold leading-[13px]"
+      style={{ background: `${color}26`, color }}
+      title={ifaceSummary(config)}
+    >
+      {text}
+    </span>
+  )
+}
 
 function PortRow({ port, used, align }: { port: Port; used: boolean; align: 'left' | 'right' }) {
+  const cfg = ifaceSummary(port)
   return (
-    <div className={`flex min-w-0 items-center gap-1.5 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex min-w-0 items-center gap-1 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
       <Handle
         id={port.id}
         type="source"
         position={align === 'left' ? Position.Left : Position.Right}
         className={`port-handle${used ? ' is-used' : ''}`}
         style={{ background: used ? SPEED_COLOR[port.speed] : 'var(--panel-2)' }}
-        title={`${port.name} · ${port.speed} · ${port.media}${port.description ? ` · ${port.description}` : ''}`}
+        title={`${port.name} · ${port.speed} · ${port.media}${cfg ? ` · ${cfg}` : ''}${port.description ? ` · ${port.description}` : ''}`}
       />
       <span
         className="truncate font-mono text-[10px] leading-none"
@@ -27,6 +45,7 @@ function PortRow({ port, used, align }: { port: Port; used: boolean; align: 'lef
       >
         {port.name}
       </span>
+      <ModeBadge config={port} />
     </div>
   )
 }
@@ -57,11 +76,14 @@ function TrunkRow({
         position={align === 'left' ? Position.Left : Position.Right}
         className={`trunk-handle${used ? ' is-used' : ''}`}
         style={{ background: used ? color : 'var(--panel-2)', borderColor: color }}
-        title={`${trunk.name} (${trunk.mode.toUpperCase()}) · ${summary.label} · ${memberNames}`}
+        title={`${trunk.name} (${trunk.mode.toUpperCase()}) · ${summary.label}${ifaceSummary(trunk) ? ` · ${ifaceSummary(trunk)}` : ''} · ${memberNames}`}
       />
       <span className={`flex min-w-0 flex-col ${align === 'right' ? 'items-end' : 'items-start'}`}>
-        <span className="truncate font-mono text-[10px] font-semibold leading-none" style={{ color }}>
-          {trunk.name}
+        <span className="flex items-center gap-1">
+          <span className="truncate font-mono text-[10px] font-semibold leading-none" style={{ color }}>
+            {trunk.name}
+          </span>
+          <ModeBadge config={trunk} />
         </span>
         <span className="truncate text-[8.5px] leading-tight" style={{ color: 'var(--muted)' }}>
           {summary.composition}
