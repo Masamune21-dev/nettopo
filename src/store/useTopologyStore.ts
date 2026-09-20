@@ -81,6 +81,8 @@ interface TopologyState {
   removeWaypoint: (edgeId: string, index: number) => void
   straightenLink: (edgeId: string) => void
 
+  /** Geser satu node sejauh dx/dy — dipakai untuk meluruskan kabel. */
+  nudgeNode: (nodeId: string, dx: number, dy: number) => void
   alignSelected: (mode: AlignMode) => void
   distributeSelected: (mode: DistributeMode) => void
   tidyUp: (direction: LayoutDirection) => void
@@ -660,6 +662,19 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
       ),
 
     /* ── Merapikan tata letak ───────────────────────────────────────────── */
+
+    nudgeNode: (nodeId, dx, dy) => {
+      if (dx === 0 && dy === 0) return
+      withHistory(() =>
+        set((s) => ({
+          nodes: s.nodes.map((n) =>
+            n.id === nodeId
+              ? { ...n, position: { x: Math.round(n.position.x + dx), y: Math.round(n.position.y + dy) } }
+              : n,
+          ),
+        })),
+      )
+    },
 
     alignSelected: (mode) => {
       const { nodes } = get()

@@ -72,8 +72,25 @@ Kabel tidak harus lurus dari port ke port:
 3. **Geser** bulatan yang muncul untuk memindahkan belokan; **klik ganda** untuk
    menghapusnya. Satu kali geser = satu langkah undo.
 4. Di panel kanan, **Gaya kabel** bisa diubah: *Lengkung* (bawaan), *Siku
-   (orthogonal)* untuk diagram bergaya rak, atau *Lurus*. Tombol **Luruskan**
-   membuang semua belokan pada kabel itu.
+   (orthogonal)* untuk diagram bergaya rak, atau *Lurus*. Tombol **Hapus
+   belokan** membuang semua titik belok pada kabel itu.
+
+### Membuat kabel benar-benar lurus
+
+Kabel sering terlihat “hampir lurus tapi ada sikunya” karena kedua portnya
+berbeda beberapa piksel: baris port di dalam node berjarak 12 px, sedangkan
+node melompat mengikuti grid, jadi selisihnya jarang pas nol.
+
+Menggambar ulang kabelnya tidak menolong — kedua ujungnya menempel di port.
+Yang perlu digeser justru perangkatnya. Pilih kabelnya, lalu tekan
+**Luruskan kabel** di panel kanan: salah satu perangkat digeser secukupnya
+sampai kedua port sejajar, dan tombolnya berubah jadi “Kabel sudah lurus”.
+Jumlah pikselnya ditulis di tombol; kalau lebih dari 100 px tombolnya berwarna
+kuning sebagai peringatan bahwa tata letak akan berubah terlihat. Semua bisa
+dibatalkan dengan `Cmd/Ctrl + Z`.
+
+Ukuran grid sendiri bisa diganti lewat menu **Grid** di toolbar: 8, 16
+(bawaan), 24, atau 32 px — sekaligus mengatur kerapatan titik latar.
 
 Titik belok ikut tersimpan di file JSON. Auto-layout membuangnya karena posisi
 perangkat berubah — jumlah yang dibuang disebutkan di notifikasi.

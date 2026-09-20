@@ -35,6 +35,7 @@ interface ContextMenuState {
 export function Canvas() {
   const store = useTopologyStore()
   const snapToGrid = useUiStore((s) => s.snapToGrid)
+  const gridSize = useUiStore((s) => s.gridSize)
   const { screenToFlowPosition } = useReactFlow()
   const wrapper = useRef<HTMLDivElement>(null)
   const [menu, setMenu] = useState<ContextMenuState | null>(null)
@@ -81,7 +82,7 @@ export function Canvas() {
     return screenToFlowPosition({ x: (rect?.left ?? 0) + m.x, y: (rect?.top ?? 0) + m.y })
   }
 
-  const snapGrid = useMemo<[number, number]>(() => [16, 16], [])
+  const snapGrid = useMemo<[number, number]>(() => [gridSize, gridSize], [gridSize])
 
   return (
     <div ref={wrapper} className="relative h-full flex-1" onDrop={onDrop} onDragOver={onDragOver}>
@@ -115,7 +116,7 @@ export function Canvas() {
         proOptions={{ hideAttribution: true }}
         fitView
       >
-        <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="var(--dot)" />
+        <Background variant={BackgroundVariant.Dots} gap={gridSize} size={1} color="var(--dot)" />
         <Controls showInteractive={false} position="bottom-left" />
         <MiniMap
           position="bottom-right"

@@ -6,6 +6,7 @@ interface UiState {
   theme: Theme
   showPortLabels: boolean
   snapToGrid: boolean
+  gridSize: number
   paletteOpen: boolean
   inspectorOpen: boolean
   search: string
@@ -43,6 +44,7 @@ export const useUiStore = create<UiState>()((set, get) => {
     theme,
     showPortLabels: true,
     snapToGrid: true,
+    gridSize: 16,
     paletteOpen: true,
     inspectorOpen: true,
     search: '',

@@ -1,7 +1,9 @@
-import { ArrowLeftRight, Spline } from 'lucide-react'
+import { ArrowLeftRight, MoveHorizontal, Spline } from 'lucide-react'
+import { useStore } from '@xyflow/react'
 import { useTopologyStore } from '@/store/useTopologyStore'
 import type { AppEdge, DeviceNode } from '@/store/types'
 import { isDeviceNode } from '@/store/types'
+import { planStraighten } from '@/lib/straighten'
 import { summarizeTrunk } from '@/lib/trunks'
 import {
   LINK_KINDS,
@@ -91,11 +93,28 @@ export function LinkInspector({ edge }: { edge: AppEdge }) {
   const flipLink = useTopologyStore((s) => s.flipLink)
   const setLinkEndpoint = useTopologyStore((s) => s.setLinkEndpoint)
   const straightenLink = useTopologyStore((s) => s.straightenLink)
+  const nudgeNode = useTopologyStore((s) => s.nudgeNode)
+  const pushToast = useTopologyStore((s) => s.pushToast)
+
+  // Posisi handle hanya diketahui React Flow setelah node diukur.
+  const straightenPlan = useStore((s) =>
+    planStraighten(
+      s.nodeLookup.get(edge.source),
+      edge.sourceHandle,
+      s.nodeLookup.get(edge.target),
+      edge.targetHandle,
+    ),
+  )
 
   const deviceOf = (id: string) => nodes.find((n): n is DeviceNode => n.id === id && isDeviceNode(n))
   const a = deviceOf(edge.source)
   const b = deviceOf(edge.target)
   const data = edge.data
+  const straightenShift = straightenPlan
+    ? Math.abs(straightenPlan.dx || straightenPlan.dy)
+    : 0
+  // Geseran jauh mengubah tata letak secara mencolok — beri tanda kuning dulu.
+  const bigShift = straightenShift > 100
 
   return (
     <div className="space-y-3.5">
@@ -250,11 +269,33 @@ export function LinkInspector({ edge }: { edge: AppEdge }) {
               type="button"
               className="btn shrink-0 px-1.5 py-0.5 text-[11px]"
               onClick={() => straightenLink(edge.id)}
+              title="Buang semua titik belok pada kabel ini"
             >
-              <Spline size={11} /> Luruskan
+              <Spline size={11} /> Hapus belokan
             </button>
           ) : null}
         </div>
+
+        <button
+          type="button"
+          className="btn mt-1.5 w-full justify-center py-0.5 text-[11px]"
+          disabled={!straightenPlan}
+          style={bigShift ? { borderColor: '#f59e0b', color: '#f59e0b' } : undefined}
+          title={
+            straightenPlan
+              ? `Geser ${straightenPlan.axis === 'y' ? 'tegak' : 'mendatar'} ${straightenShift} px agar kedua port sejajar` +
+                (bigShift ? ' — cukup jauh, tata letak akan berubah terlihat. Bisa dibatalkan dengan Cmd/Ctrl+Z.' : '')
+              : 'Kabel ini sudah lurus'
+          }
+          onClick={() => {
+            if (!straightenPlan) return
+            nudgeNode(straightenPlan.nodeId, straightenPlan.dx, straightenPlan.dy)
+            pushToast(`Perangkat digeser ${straightenShift} px — kabel sekarang lurus.`, 'ok')
+          }}
+        >
+          <MoveHorizontal size={11} />
+          {straightenPlan ? `Luruskan kabel (geser ${straightenShift} px)` : 'Kabel sudah lurus'}
+        </button>
       </div>
 
       <div>

@@ -418,15 +418,40 @@ export function Toolbar() {
       >
         <Tag size={13} />
       </button>
-      <button
-        type="button"
-        className="btn"
-        onClick={() => ui.set('snapToGrid', !ui.snapToGrid)}
-        title="Snap ke grid"
-        style={{ color: ui.snapToGrid ? '#4f46e5' : undefined }}
-      >
-        <Grid3x3 size={13} />
-      </button>
+      <Menu label="Grid" icon={<Grid3x3 size={13} />}>
+        {(close) => (
+          <>
+            <MenuItem
+              onClick={() => {
+                ui.set('snapToGrid', !ui.snapToGrid)
+                close()
+              }}
+            >
+              {ui.snapToGrid ? '✓ ' : '\u2007\u2007'}Snap ke grid
+            </MenuItem>
+            <div className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
+            <div
+              className="px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
+              style={{ color: 'var(--muted)' }}
+            >
+              Ukuran grid
+            </div>
+            {[8, 16, 24, 32].map((size) => (
+              <MenuItem
+                key={size}
+                onClick={() => {
+                  ui.set('gridSize', size)
+                  close()
+                }}
+              >
+                {ui.gridSize === size ? '✓ ' : '\u2007\u2007'}
+                {size} px
+                {size === 16 ? ' (bawaan)' : ''}
+              </MenuItem>
+            ))}
+          </>
+        )}
+      </Menu>
       <button type="button" className="btn" onClick={ui.toggleTheme} title="Ganti tema">
         {ui.theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
       </button>
