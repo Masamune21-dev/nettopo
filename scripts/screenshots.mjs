@@ -68,13 +68,17 @@ await settle(1200)
 await page.waitForSelector('text=PROPERTI PERANGKAT')
 await shot('03-panel-perangkat', { clip: { x: 1258, y: 52, width: 342, height: 940 } })
 
-/* 4. Katalog — sengaja dibiarkan terlipat, karena itu yang mau ditunjukkan */
-// Digeser sedikit supaya baris merek paling bawah tidak terpotong bingkai.
+/* 4. Katalog — satu merek dibuka, sisanya terlipat: itu yang mau ditunjukkan */
 await page.evaluate(() => {
-  const list = document.querySelector('aside .thin-scroll')
-  if (list) list.scrollTop = 70
+  const head = (name) =>
+    [...document.querySelectorAll('aside button[aria-expanded]')].find((b) =>
+      (b.textContent || '').toUpperCase().startsWith(name),
+    )
+  // Juniper ditutup dan ZTE dibuka supaya deretan OLT ikut terlihat.
+  if (head('JUNIPER')?.getAttribute('aria-expanded') === 'true') head('JUNIPER').click()
+  if (head('ZTE')?.getAttribute('aria-expanded') === 'false') head('ZTE').click()
 })
-await settle(600)
+await settle(700)
 await shot('04-katalog', { clip: { x: 0, y: 52, width: 264, height: 940 } })
 
 /* Bersihkan kotak pencarian supaya tidak ada teks sisa di gambar berikutnya */

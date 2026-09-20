@@ -19,6 +19,10 @@ export type Vendor =
   | 'cisco'
   | 'ubiquiti'
   | 'tplink'
+  | 'fiberhome'
+  | 'bdcom'
+  | 'vsol'
+  | 'cdata'
   | 'htb'
   | 'generic'
 
@@ -56,6 +60,10 @@ export const VENDOR_META: Record<Vendor, { label: string; color: string }> = {
   cisco: { label: 'Cisco', color: '#0ea5e9' },
   ubiquiti: { label: 'Ubiquiti', color: '#06b6d4' },
   tplink: { label: 'TP-Link', color: '#16a34a' },
+  fiberhome: { label: 'FiberHome', color: '#db2777' },
+  bdcom: { label: 'BDCOM', color: '#7c3aed' },
+  vsol: { label: 'V-SOL', color: '#0d9488' },
+  cdata: { label: 'C-Data', color: '#b45309' },
   htb: { label: 'HTB', color: '#eab308' },
   generic: { label: 'Umum', color: '#64748b' },
 }
@@ -68,6 +76,10 @@ export const VENDOR_ORDER: Vendor[] = [
   'cisco',
   'ubiquiti',
   'tplink',
+  'fiberhome',
+  'bdcom',
+  'vsol',
+  'cdata',
   'htb',
   'generic',
 ]
@@ -377,6 +389,37 @@ export const DEVICE_CATALOG: DeviceModel[] = [
       { prefix: 'GPON0/0/', count: 8, startIndex: 0, speed: '2.5G', media: 'sfp', group: 'PON slot 0' },
       { prefix: 'GPON0/1/', count: 8, startIndex: 0, speed: '2.5G', media: 'sfp', group: 'PON slot 1' },
       { prefix: 'XGE0/2/', count: 2, startIndex: 0, speed: '10G', media: 'sfp+', group: 'Uplink' },
+    ],
+  },
+
+  {
+    id: 'huawei-ma5800-x15',
+    vendor: 'huawei',
+    series: 'MA5800',
+    model: 'MA5800-X15 (OLT)',
+    role: 'olt',
+    os: 'vrp',
+    note: 'OLT besar - contoh 3 board 16 PON + uplink 10GE dan 100GE',
+    ports: [
+      { prefix: 'GPON0/1/', count: 16, startIndex: 0, speed: '2.5G', media: 'sfp', group: 'PON board 1' },
+      { prefix: 'GPON0/2/', count: 16, startIndex: 0, speed: '2.5G', media: 'sfp', group: 'PON board 2' },
+      { prefix: 'GPON0/3/', count: 16, startIndex: 0, speed: '2.5G', media: 'sfp', group: 'PON board 3' },
+      { prefix: 'XGE0/9/', count: 4, startIndex: 0, speed: '10G', media: 'sfp+', group: 'Uplink 10GE' },
+      { prefix: '100GE0/10/', count: 2, startIndex: 0, speed: '100G', media: 'qsfp28', group: 'Uplink 100GE' },
+    ],
+  },
+  {
+    id: 'huawei-ma5800-x2',
+    vendor: 'huawei',
+    series: 'MA5800',
+    model: 'MA5800-X2 (OLT)',
+    role: 'olt',
+    os: 'vrp',
+    note: 'OLT ringkas - contoh 2 board 16 PON + uplink 10GE',
+    ports: [
+      { prefix: 'GPON0/1/', count: 16, startIndex: 0, speed: '2.5G', media: 'sfp', group: 'PON board 1' },
+      { prefix: 'GPON0/2/', count: 16, startIndex: 0, speed: '2.5G', media: 'sfp', group: 'PON board 2' },
+      { prefix: 'XGE0/0/', count: 4, startIndex: 0, speed: '10G', media: 'sfp+', group: 'Uplink' },
     ],
   },
 
@@ -758,6 +801,35 @@ export const DEVICE_CATALOG: DeviceModel[] = [
     ],
   },
   {
+    id: 'zte-c300',
+    vendor: 'zte',
+    series: 'ZXA10',
+    model: 'C300 (OLT)',
+    role: 'olt',
+    os: 'other',
+    note: 'OLT GPON chassis - contoh 2 board 16 PON + uplink 10GE',
+    ports: [
+      { prefix: 'gpon-olt_1/1/', count: 16, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'PON slot 1' },
+      { prefix: 'gpon-olt_1/2/', count: 16, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'PON slot 2' },
+      { prefix: 'xgei_1/9/', count: 2, startIndex: 1, speed: '10G', media: 'sfp+', group: 'Uplink 10GE' },
+      { prefix: 'gei_1/9/', count: 4, startIndex: 3, speed: '1G', media: 'sfp', group: 'Uplink GE' },
+    ],
+  },
+  {
+    id: 'zte-c650',
+    vendor: 'zte',
+    series: 'ZXA10',
+    model: 'C650 (OLT)',
+    role: 'olt',
+    os: 'other',
+    note: 'OLT kapasitas tinggi - contoh 2 board 16 PON + uplink 100GE',
+    ports: [
+      { prefix: 'gpon-olt_1/1/', count: 16, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'PON slot 1' },
+      { prefix: 'gpon-olt_1/2/', count: 16, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'PON slot 2' },
+      { prefix: 'cei_1/9/', count: 4, startIndex: 1, speed: '100G', media: 'qsfp28', group: 'Uplink 100GE' },
+    ],
+  },
+  {
     id: 'zte-c600',
     vendor: 'zte',
     series: 'ZXA10',
@@ -1028,6 +1100,125 @@ export const DEVICE_CATALOG: DeviceModel[] = [
     ports: [
       { prefix: 'sfp', count: 1, startIndex: 1, speed: '1G', media: 'sfp', group: 'Fiber' },
       { prefix: 'utp', count: 1, startIndex: 1, speed: '1G', media: 'rj45', group: 'Tembaga' },
+    ],
+  },
+
+  /* -- FiberHome ---------------------------------------------------------- */
+  {
+    id: 'fiberhome-an5516-01',
+    vendor: 'fiberhome',
+    series: 'AN5516',
+    model: 'AN5516-01 (OLT)',
+    role: 'olt',
+    os: 'other',
+    note: 'OLT GPON chassis - contoh 2 board 16 PON + uplink 10GE (penamaan port contoh, cocokkan dengan perangkat Anda)',
+    ports: [
+      { prefix: 'gpon1/1/', count: 16, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'PON slot 1' },
+      { prefix: 'gpon1/2/', count: 16, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'PON slot 2' },
+      { prefix: 'xge1/9/', count: 2, startIndex: 1, speed: '10G', media: 'sfp+', group: 'Uplink 10GE' },
+      { prefix: 'ge1/9/', count: 4, startIndex: 3, speed: '1G', media: 'sfp', group: 'Uplink GE' },
+    ],
+  },
+  {
+    id: 'fiberhome-an5506-04',
+    vendor: 'fiberhome',
+    series: 'AN5506',
+    model: 'AN5506-04-F (ONT)',
+    role: 'cpe',
+    os: 'other',
+    note: 'ONT GPON pelanggan - 1x PON + 4x LAN',
+    ports: [
+      { prefix: 'pon', count: 1, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'PON' },
+      { prefix: 'lan', count: 4, startIndex: 1, speed: '1G', media: 'rj45', group: 'LAN' },
+    ],
+  },
+
+  /* -- BDCOM -------------------------------------------------------------- */
+  {
+    id: 'bdcom-p3310b',
+    vendor: 'bdcom',
+    series: 'P3310',
+    model: 'P3310B (OLT EPON)',
+    role: 'olt',
+    os: 'other',
+    note: 'OLT EPON - 8 PON + uplink GE dan 10GE (penamaan port contoh, cocokkan dengan perangkat Anda)',
+    ports: [
+      { prefix: 'EPON0/', count: 8, startIndex: 1, speed: '1G', media: 'sfp', group: 'EPON' },
+      { prefix: 'GigaEthernet0/', count: 4, startIndex: 1, speed: '1G', media: 'sfp', group: 'Uplink GE' },
+      { prefix: 'TGigaEthernet0/', count: 2, startIndex: 1, speed: '10G', media: 'sfp+', group: 'Uplink 10GE' },
+    ],
+  },
+  {
+    id: 'bdcom-p3608',
+    vendor: 'bdcom',
+    series: 'P3608',
+    model: 'P3608-2TE (OLT GPON)',
+    role: 'olt',
+    os: 'other',
+    note: 'OLT GPON - 8 PON + uplink GE dan 10GE (penamaan port contoh, cocokkan dengan perangkat Anda)',
+    ports: [
+      { prefix: 'GPON0/', count: 8, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'GPON' },
+      { prefix: 'GigaEthernet0/', count: 4, startIndex: 1, speed: '1G', media: 'sfp', group: 'Uplink GE' },
+      { prefix: 'TGigaEthernet0/', count: 2, startIndex: 1, speed: '10G', media: 'sfp+', group: 'Uplink 10GE' },
+    ],
+  },
+
+  /* -- V-SOL -------------------------------------------------------------- */
+  {
+    id: 'vsol-v1600d',
+    vendor: 'vsol',
+    series: 'V1600',
+    model: 'V1600D (OLT EPON)',
+    role: 'olt',
+    os: 'other',
+    note: 'OLT EPON ringkas - 4 PON + uplink GE dan 10GE (penamaan port contoh, cocokkan dengan perangkat Anda)',
+    ports: [
+      { prefix: 'epon0/', count: 4, startIndex: 1, speed: '1G', media: 'sfp', group: 'EPON' },
+      { prefix: 'ge0/', count: 4, startIndex: 1, speed: '1G', media: 'rj45', group: 'Uplink GE' },
+      { prefix: 'xge0/', count: 2, startIndex: 1, speed: '10G', media: 'sfp+', group: 'Uplink 10GE' },
+    ],
+  },
+  {
+    id: 'vsol-v1600g2',
+    vendor: 'vsol',
+    series: 'V1600',
+    model: 'V1600G2 (OLT GPON)',
+    role: 'olt',
+    os: 'other',
+    note: 'OLT GPON ringkas - 2 PON + uplink GE dan 10GE (penamaan port contoh, cocokkan dengan perangkat Anda)',
+    ports: [
+      { prefix: 'gpon0/', count: 2, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'GPON' },
+      { prefix: 'ge0/', count: 4, startIndex: 1, speed: '1G', media: 'rj45', group: 'Uplink GE' },
+      { prefix: 'xge0/', count: 2, startIndex: 1, speed: '10G', media: 'sfp+', group: 'Uplink 10GE' },
+    ],
+  },
+
+  /* -- C-Data ------------------------------------------------------------- */
+  {
+    id: 'cdata-fd1216s',
+    vendor: 'cdata',
+    series: 'FD1200',
+    model: 'FD1216S (OLT GPON)',
+    role: 'olt',
+    os: 'other',
+    note: 'OLT GPON 16 PON + uplink GE dan 10GE (penamaan port contoh, cocokkan dengan perangkat Anda)',
+    ports: [
+      { prefix: 'gpon0/', count: 16, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'GPON' },
+      { prefix: 'ge0/', count: 4, startIndex: 1, speed: '1G', media: 'sfp', group: 'Uplink GE' },
+      { prefix: 'xge0/', count: 2, startIndex: 1, speed: '10G', media: 'sfp+', group: 'Uplink 10GE' },
+    ],
+  },
+  {
+    id: 'cdata-fd1104s',
+    vendor: 'cdata',
+    series: 'FD1100',
+    model: 'FD1104S (OLT GPON)',
+    role: 'olt',
+    os: 'other',
+    note: 'OLT GPON 4 PON + uplink GE (penamaan port contoh, cocokkan dengan perangkat Anda)',
+    ports: [
+      { prefix: 'gpon0/', count: 4, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'GPON' },
+      { prefix: 'ge0/', count: 4, startIndex: 1, speed: '1G', media: 'rj45', group: 'Uplink GE' },
     ],
   },
 

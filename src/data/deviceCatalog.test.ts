@@ -95,6 +95,6 @@ describe('integritas katalog', () => {
   })
 
   it('katalog cukup banyak untuk dipakai sehari-hari', () => {
-    expect(DEVICE_CATALOG.length).toBeGreaterThanOrEqual(85)
+    expect(DEVICE_CATALOG.length).toBeGreaterThanOrEqual(100)
   })
 })
