@@ -2,6 +2,7 @@ import { ArrowLeftRight } from 'lucide-react'
 import { useTopologyStore } from '@/store/useTopologyStore'
 import type { AppEdge, DeviceNode } from '@/store/types'
 import { isDeviceNode } from '@/store/types'
+import { summarizeTrunk } from '@/lib/trunks'
 import { LINK_KINDS, LINK_MEDIA, SPEED_COLOR, SPEEDS } from '@/types/topology'
 
 const KIND_LABEL: Record<(typeof LINK_KINDS)[number], string> = {
@@ -20,14 +21,19 @@ const MEDIA_LABEL: Record<(typeof LINK_MEDIA)[number], string> = {
 function EndpointRow({
   title,
   device,
-  portId,
+  handleId,
   onChange,
 }: {
   title: string
   device: DeviceNode | undefined
-  portId: string | null | undefined
-  onChange: (portId: string) => void
+  handleId: string | null | undefined
+  onChange: (handleId: string) => void
 }) {
+  const trunk = device?.data.trunks.find((t) => t.id === handleId)
+  const summary = trunk && device ? summarizeTrunk(trunk, device.data.ports) : null
+  // Port yang sudah jadi anggota trunk tidak boleh dipilih sebagai ujung link.
+  const memberIds = new Set(device?.data.trunks.flatMap((t) => t.memberIds) ?? [])
+
   return (
     <div>
       <span className="label">{title}</span>
@@ -35,15 +41,38 @@ function EndpointRow({
         <div className="truncate text-[12px] font-medium">{device?.data.hostname ?? '—'}</div>
         <select
           className="field mt-1 font-mono text-[11px]"
-          value={portId ?? ''}
+          value={handleId ?? ''}
+          aria-label={`Interface ${title}`}
           onChange={(e) => onChange(e.target.value)}
         >
-          {device?.data.ports.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name} · {p.speed}
-            </option>
-          ))}
+          {device && device.data.trunks.length > 0 ? (
+            <optgroup label="Trunk / bonding">
+              {device.data.trunks.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name} · {summarizeTrunk(t, device.data.ports).composition}
+                </option>
+              ))}
+            </optgroup>
+          ) : null}
+          <optgroup label="Port fisik">
+            {device?.data.ports
+              .filter((p) => !memberIds.has(p.id))
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} · {p.speed}
+                </option>
+              ))}
+          </optgroup>
         </select>
+        {trunk && summary ? (
+          <div className="mt-1 text-[10px]" style={{ color: 'var(--muted)' }}>
+            {trunk.mode === 'lacp' ? 'LACP' : 'Static'} · {summary.label} ·{' '}
+            {trunk.memberIds
+              .map((id) => device?.data.ports.find((p) => p.id === id)?.name)
+              .filter(Boolean)
+              .join(', ')}
+          </div>
+        ) : null}
       </div>
     </div>
   )
@@ -73,8 +102,8 @@ export function LinkInspector({ edge }: { edge: AppEdge }) {
       <EndpointRow
         title="Sisi A"
         device={a}
-        portId={edge.sourceHandle}
-        onChange={(portId) => setLinkEndpoint(edge.id, 'a', portId)}
+        handleId={edge.sourceHandle}
+        onChange={(handleId) => setLinkEndpoint(edge.id, 'a', handleId)}
       />
 
       <button
@@ -89,8 +118,8 @@ export function LinkInspector({ edge }: { edge: AppEdge }) {
       <EndpointRow
         title="Sisi B"
         device={b}
-        portId={edge.targetHandle}
-        onChange={(portId) => setLinkEndpoint(edge.id, 'b', portId)}
+        handleId={edge.targetHandle}
+        onChange={(handleId) => setLinkEndpoint(edge.id, 'b', handleId)}
       />
 
       <div className="grid grid-cols-2 gap-2">

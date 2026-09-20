@@ -4,6 +4,9 @@ Aplikasi web untuk menggambar topologi jaringan sampai level **port-ke-port**,
 dengan katalog perangkat yang sesuai jaringan ISP di Indonesia: **Juniper MX,
 switch & SSW Huawei, MikroTik CRS dan CCR**.
 
+Mendukung **link aggregation / bonding** — Eth-Trunk (Huawei), ae (Juniper),
+bond (MikroTik) — lengkap dengan daftar port anggotanya.
+
 Semua data disimpan di browser Anda sendiri (tidak ada server, tidak ada login),
 dan bisa diekspor ke JSON, PNG, SVG, atau CSV.
 
@@ -49,6 +52,29 @@ Buka <http://localhost:5173>.
    SSW/agregasi → distribusi → akses.
 6. **Simpan** menyimpan ke browser; ada juga autosave setiap 1,5 detik setelah
    perubahan terakhir.
+
+### Bonding / link aggregation
+
+1. Pilih perangkatnya, lalu di panel kanan centang **2 port atau lebih** yang
+   mau digabung (port yang sudah punya link sendiri tidak bisa dicentang).
+2. Klik **Jadikan trunk**. Namanya otomatis mengikuti OS perangkat:
+
+   | Vendor | Nama otomatis |
+   |---|---|
+   | Huawei (VRP) | `Eth-Trunk1`, `Eth-Trunk2`, … |
+   | Juniper (Junos) | `ae0`, `ae1`, … |
+   | MikroTik (RouterOS) | `bond1`, `bond2`, … |
+   | Lainnya | `lag1`, `lag2`, … |
+
+3. Di kanvas, trunk muncul sebagai **satu interface logis** (kotak lebar
+   bergaris ganda) dengan keterangan `2× 10G`; port anggotanya disembunyikan
+   supaya diagram tetap bersih. Tarik kabel dari trunk ke trunk di perangkat
+   lawan seperti port biasa.
+4. Mode bisa diubah antara **LACP (dinamis)** dan **manual/static**, anggota
+   bisa ditambah atau dikeluarkan kapan saja, dan kapasitas total dihitung
+   otomatis (`2× 10G = 20G`).
+5. Pemeriksaan otomatis memperingatkan bila trunk cuma punya 1 anggota,
+   anggotanya beda kecepatan, atau jumlah anggota di dua ujung link tidak sama.
 
 ### Pintasan keyboard
 
@@ -107,7 +133,7 @@ atau dibaca oleh skrip lain. Strukturnya (lihat [`src/types/topology.ts`](src/ty
 
 ```jsonc
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "project": { "id": "...", "name": "Backbone Jakarta", "site": "POP-JKT-1", "updatedAt": "..." },
   "devices": [
     {
@@ -117,15 +143,25 @@ atau dibaca oleh skrip lain. Strukturnya (lihat [`src/types/topology.ts`](src/ty
       "ports": [
         { "id": "p_1", "name": "et-0/0/0", "speed": "100G", "media": "qsfp28",
           "description": "to SSW-01", "side": "left" }
+      ],
+      "trunks": [
+        { "id": "trk_1", "name": "ae0", "mode": "lacp",
+          "memberIds": ["p_3", "p_4"], "description": "", "side": "left" }
       ]
     }
   ],
   "links": [
+    // Ujung link menunjuk port fisik ATAU trunk — salah satu terisi.
     { "id": "lnk_1",
-      "a": { "deviceId": "dev_1", "portId": "p_1" },
-      "b": { "deviceId": "dev_2", "portId": "p_9" },
+      "a": { "deviceId": "dev_1", "portId": "p_1", "trunkId": null },
+      "b": { "deviceId": "dev_2", "portId": "p_9", "trunkId": null },
       "speed": "100G", "media": "fiber", "kind": "single",
-      "label": "Core ↔ SSW", "vlans": "100,200", "color": null }
+      "label": "Core ↔ SSW", "vlans": "100,200", "color": null },
+    { "id": "lnk_2",
+      "a": { "deviceId": "dev_1", "portId": "", "trunkId": "trk_1" },
+      "b": { "deviceId": "dev_3", "portId": "", "trunkId": "trk_9" },
+      "speed": "10G", "media": "fiber", "kind": "lacp",
+      "label": "", "vlans": "", "color": null }
   ],
   "groups": [ /* kotak area / POP */ ],
   "notes":  [ /* catatan tempel */ ]
@@ -134,6 +170,9 @@ atau dibaca oleh skrip lain. Strukturnya (lihat [`src/types/topology.ts`](src/ty
 
 File yang diimpor divalidasi dengan zod; kalau ada yang tidak sesuai, aplikasi
 menyebutkan field mana yang bermasalah dan tidak menimpa pekerjaan Anda.
+
+File **`schemaVersion: 1`** (sebelum ada trunk) tetap bisa dibuka — field baru
+terisi nilai bawaan, dan file akan tersimpan ulang sebagai versi 2.
 
 ---
 

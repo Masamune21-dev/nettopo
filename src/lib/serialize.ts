@@ -12,6 +12,19 @@ export interface ProjectMeta {
   site: string
 }
 
+/**
+ * Sebuah handle React Flow bisa berupa port fisik atau trunk. Saat diekspor
+ * keduanya dibedakan supaya file JSON tetap bisa dibaca sendiri.
+ */
+function endpoint(nodes: AppNode[], deviceId: string, handleId: string | null | undefined) {
+  const id = handleId ?? ''
+  const device = nodes.filter(isDeviceNode).find((n) => n.id === deviceId)
+  const isTrunk = device?.data.trunks.some((t) => t.id === id) ?? false
+  return isTrunk
+    ? { deviceId, portId: '', trunkId: id }
+    : { deviceId, portId: id, trunkId: null }
+}
+
 const sizeOf = (n: AppNode, fw: number, fh: number) => ({
   width: n.width ?? n.measured?.width ?? fw,
   height: n.height ?? n.measured?.height ?? fh,
@@ -42,13 +55,14 @@ export function toTopology(
       notes: n.data.notes,
       position: { x: Math.round(n.position.x), y: Math.round(n.position.y) },
       ports: n.data.ports,
+      trunks: n.data.trunks,
       expanded: n.data.expanded,
       parentId: n.parentId ?? null,
     })),
     links: edges.map((e) => ({
       id: e.id,
-      a: { deviceId: e.source, portId: e.sourceHandle ?? '' },
-      b: { deviceId: e.target, portId: e.targetHandle ?? '' },
+      a: endpoint(nodes, e.source, e.sourceHandle),
+      b: endpoint(nodes, e.target, e.targetHandle),
       speed: e.data?.speed ?? '1G',
       media: e.data?.media ?? 'fiber',
       kind: e.data?.kind ?? 'single',
@@ -99,6 +113,7 @@ export function fromTopology(t: Topology): {
       site: d.site,
       notes: d.notes,
       ports: d.ports,
+      trunks: d.trunks,
       expanded: d.expanded,
     }
     return {
@@ -124,8 +139,8 @@ export function fromTopology(t: Topology): {
     type: 'link',
     source: l.a.deviceId,
     target: l.b.deviceId,
-    sourceHandle: l.a.portId,
-    targetHandle: l.b.portId,
+    sourceHandle: l.a.trunkId ?? l.a.portId,
+    targetHandle: l.b.trunkId ?? l.b.portId,
     data: {
       speed: l.speed,
       media: l.media,

@@ -11,6 +11,9 @@ export type Media = (typeof MEDIA)[number]
 export const LINK_MEDIA = ['fiber', 'copper', 'wireless', 'virtual'] as const
 export type LinkMedia = (typeof LINK_MEDIA)[number]
 
+export const TRUNK_MODES = ['lacp', 'static'] as const
+export type TrunkMode = (typeof TRUNK_MODES)[number]
+
 export const LINK_KINDS = ['single', 'lacp', 'backup'] as const
 export type LinkKind = (typeof LINK_KINDS)[number]
 
@@ -95,6 +98,20 @@ export const portSchema = z.object({
   side: z.enum(['left', 'right']).default('left'),
 })
 
+/**
+ * Link aggregation pada satu perangkat: Eth-Trunk (Huawei), ae (Juniper),
+ * bond (MikroTik). Anggotanya adalah port fisik milik perangkat itu sendiri —
+ * sisi lawan punya trunk-nya sendiri dengan anggota sendiri.
+ */
+export const trunkSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  mode: z.enum(TRUNK_MODES).default('lacp'),
+  memberIds: z.array(z.string()),
+  description: z.string().default(''),
+  side: z.enum(['left', 'right']).default('left'),
+})
+
 export const deviceSchema = z.object({
   id: z.string(),
   modelId: z.string(),
@@ -106,11 +123,17 @@ export const deviceSchema = z.object({
   notes: z.string().default(''),
   position: z.object({ x: z.number(), y: z.number() }),
   ports: z.array(portSchema),
+  trunks: z.array(trunkSchema).default([]),
   expanded: z.boolean().default(true),
   parentId: z.string().nullable().default(null),
 })
 
-export const endpointSchema = z.object({ deviceId: z.string(), portId: z.string() })
+/** Ujung link menunjuk port fisik, atau sebuah trunk (bonding). */
+export const endpointSchema = z.object({
+  deviceId: z.string(),
+  portId: z.string().default(''),
+  trunkId: z.string().nullable().default(null),
+})
 
 export const linkSchema = z.object({
   id: z.string(),
@@ -141,7 +164,8 @@ export const noteSchema = z.object({
 })
 
 export const topologySchema = z.object({
-  schemaVersion: z.literal(1),
+  // Versi 1 (tanpa trunk) tetap diterima: field baru terisi nilai bawaan.
+  schemaVersion: z.union([z.literal(1), z.literal(2)]),
   project: z.object({
     id: z.string(),
     name: z.string(),
@@ -155,6 +179,7 @@ export const topologySchema = z.object({
 })
 
 export type Port = z.infer<typeof portSchema>
+export type Trunk = z.infer<typeof trunkSchema>
 export type Device = z.infer<typeof deviceSchema>
 export type Endpoint = z.infer<typeof endpointSchema>
 export type Link = z.infer<typeof linkSchema>
@@ -162,4 +187,5 @@ export type TopoGroup = z.infer<typeof groupSchema>
 export type TopoNote = z.infer<typeof noteSchema>
 export type Topology = z.infer<typeof topologySchema>
 
-export const SCHEMA_VERSION = 1 as const
+export const SCHEMA_VERSION = 2 as const
+export const SUPPORTED_SCHEMA_VERSIONS = [1, 2] as const

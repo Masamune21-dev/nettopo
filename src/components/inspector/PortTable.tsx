@@ -1,25 +1,33 @@
-import { Plus, Trash2 } from 'lucide-react'
+import { Link2, Plus, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { trunkOfPort } from '@/lib/trunks'
+import { deviceUsage } from '@/lib/usage'
 import { useTopologyStore } from '@/store/useTopologyStore'
 import type { DeviceNode } from '@/store/types'
 import { MEDIA, SPEED_COLOR, SPEEDS } from '@/types/topology'
+import { TrunkSection } from './TrunkSection'
 
 export function PortTable({ device }: { device: DeviceNode }) {
   const edges = useTopologyStore((s) => s.edges)
   const updatePort = useTopologyStore((s) => s.updatePort)
   const addPort = useTopologyStore((s) => s.addPort)
   const removePort = useTopologyStore((s) => s.removePort)
+  const createTrunk = useTopologyStore((s) => s.createTrunk)
   const [onlyUsed, setOnlyUsed] = useState(false)
   const [filter, setFilter] = useState('')
+  const [picked, setPicked] = useState<string[]>([])
 
-  const used = useMemo(() => {
-    const set = new Set<string>()
-    for (const e of edges) {
-      if (e.source === device.id && e.sourceHandle) set.add(e.sourceHandle)
-      if (e.target === device.id && e.targetHandle) set.add(e.targetHandle)
-    }
-    return set
-  }, [edges, device.id])
+  const usage = useMemo(
+    () => deviceUsage(device.id, device.data.trunks, edges),
+    [edges, device.id, device.data.trunks],
+  )
+  const used = usage.ports
+
+  // Port yang sudah jadi anggota trunk tidak bisa dipilih lagi.
+  const selectable = (portId: string) => !trunkOfPort(device.data.trunks, portId)
+  const pickedValid = picked.filter(selectable)
+  const togglePick = (portId: string) =>
+    setPicked((prev) => (prev.includes(portId) ? prev.filter((x) => x !== portId) : [...prev, portId]))
 
   const q = filter.trim().toLowerCase()
   const shown = device.data.ports.filter(
@@ -29,7 +37,14 @@ export function PortTable({ device }: { device: DeviceNode }) {
   )
 
   return (
-    <section>
+    <div className="space-y-3.5">
+      <TrunkSection
+        device={device}
+        selectedPortIds={pickedValid}
+        onConsumeSelection={() => setPicked([])}
+      />
+
+      <section>
       <div className="mb-1.5 flex items-center justify-between">
         <span className="label mb-0">
           Port ({used.size}/{device.data.ports.length} terpakai)
@@ -38,6 +53,34 @@ export function PortTable({ device }: { device: DeviceNode }) {
           <Plus size={11} /> Tambah
         </button>
       </div>
+
+      {pickedValid.length > 0 ? (
+        <div
+          className="mb-1.5 flex items-center gap-1.5 rounded-md border px-2 py-1.5"
+          style={{ borderColor: '#a855f7', background: '#a855f714' }}
+        >
+          <span className="flex-1 text-[11px]">{pickedValid.length} port dipilih</span>
+          <button
+            type="button"
+            className="btn px-1.5 py-0.5 text-[11px]"
+            disabled={pickedValid.length < 2}
+            title={
+              pickedValid.length < 2
+                ? 'Pilih minimal 2 port untuk dijadikan trunk'
+                : 'Gabungkan port terpilih menjadi satu interface agregasi'
+            }
+            onClick={() => {
+              createTrunk(device.id, pickedValid)
+              setPicked([])
+            }}
+          >
+            <Link2 size={11} /> Jadikan trunk
+          </button>
+          <button type="button" className="btn px-1.5 py-0.5 text-[11px]" onClick={() => setPicked([])}>
+            Batal
+          </button>
+        </div>
+      ) : null}
 
       <div className="mb-1.5 flex items-center gap-1.5">
         <input
@@ -69,13 +112,40 @@ export function PortTable({ device }: { device: DeviceNode }) {
 
         {shown.map((p) => {
           const isUsed = used.has(p.id)
+          const owner = trunkOfPort(device.data.trunks, p.id)
           return (
             <li
               key={p.id}
               className="rounded-md border p-1.5"
-              style={{ borderColor: 'var(--border)', background: 'var(--panel-2)' }}
+              style={{
+                borderColor: picked.includes(p.id) ? '#a855f7' : 'var(--border)',
+                background: 'var(--panel-2)',
+              }}
             >
               <div className="flex items-center gap-1">
+                {owner ? (
+                  <span
+                    className="shrink-0 rounded border px-1 font-mono text-[9px]"
+                    style={{ borderColor: '#a855f7', color: '#a855f7' }}
+                    title={`Anggota ${owner.name}`}
+                  >
+                    {owner.name}
+                  </span>
+                ) : (
+                  <input
+                    type="checkbox"
+                    className="shrink-0 accent-purple-500"
+                    checked={picked.includes(p.id)}
+                    disabled={usage.handles.has(p.id)}
+                    title={
+                      usage.handles.has(p.id)
+                        ? 'Port sudah punya link sendiri'
+                        : 'Pilih untuk dijadikan trunk'
+                    }
+                    aria-label={`Pilih ${p.name}`}
+                    onChange={() => togglePick(p.id)}
+                  />
+                )}
                 <span
                   className="size-2.5 shrink-0 rounded-sm"
                   style={{ background: isUsed ? SPEED_COLOR[p.speed] : 'var(--border)' }}
@@ -143,6 +213,7 @@ export function PortTable({ device }: { device: DeviceNode }) {
           )
         })}
       </ul>
-    </section>
+      </section>
+    </div>
   )
 }

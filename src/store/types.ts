@@ -1,5 +1,5 @@
 import type { Edge, Node } from '@xyflow/react'
-import type { DeviceRole, LinkKind, LinkMedia, Port, Speed } from '@/types/topology'
+import type { DeviceRole, LinkKind, LinkMedia, Port, Speed, Trunk } from '@/types/topology'
 
 export type DeviceNodeData = {
   modelId: string
@@ -10,6 +10,7 @@ export type DeviceNodeData = {
   site: string
   notes: string
   ports: Port[]
+  trunks: Trunk[]
   expanded: boolean
 }
 

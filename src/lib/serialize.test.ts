@@ -30,6 +30,7 @@ function fixture(): { nodes: AppNode[]; edges: AppEdge[] } {
         site: 'POP-JKT-1',
         notes: 'catatan',
         ports: mxPorts,
+        trunks: [],
         expanded: true,
       },
     },
@@ -46,6 +47,7 @@ function fixture(): { nodes: AppNode[]; edges: AppEdge[] } {
         site: '',
         notes: '',
         ports: crsPorts,
+        trunks: [],
         expanded: true,
       },
     },
@@ -106,6 +108,59 @@ describe('round-trip ekspor → impor', () => {
     expect(topo.links[0]?.b.portId).toBe(edges[0]?.targetHandle)
     expect(topo.groups).toHaveLength(1)
     expect(topo.notes).toHaveLength(1)
+  })
+})
+
+describe('link berbasis trunk', () => {
+  it('membedakan ujung trunk dan ujung port saat ekspor-impor', () => {
+    const { nodes, edges } = fixture()
+    const mx = nodes.find((n) => n.id === 'dev1')!
+    const ports = (mx.data as { ports: { id: string }[] }).ports
+    const trunk = {
+      id: 'trk1',
+      name: 'ae0',
+      mode: 'lacp' as const,
+      memberIds: [ports[2]!.id, ports[3]!.id],
+      description: '',
+      side: 'left' as const,
+    }
+    ;(mx.data as { trunks: unknown[] }).trunks = [trunk]
+    edges[0]!.sourceHandle = trunk.id
+
+    const topo = toTopology(meta, nodes, edges)
+    expect(topo.links[0]?.a.trunkId).toBe('trk1')
+    expect(topo.links[0]?.a.portId).toBe('')
+    expect(topo.links[0]?.b.trunkId).toBeNull()
+
+    const parsed = parseTopology(JSON.stringify(topo))
+    expect(parsed.ok).toBe(true)
+    if (!parsed.ok) return
+    const state = fromTopology(parsed.data)
+    expect(state.edges[0]?.sourceHandle).toBe('trk1')
+    const device = state.nodes.find((n) => n.id === 'dev1')!
+    expect((device.data as { trunks: unknown[] }).trunks).toHaveLength(1)
+  })
+})
+
+describe('kompatibilitas file lama', () => {
+  it('membaca file schemaVersion 1 yang belum punya trunk', () => {
+    const { nodes, edges } = fixture()
+    const v1 = JSON.parse(JSON.stringify(toTopology(meta, nodes, edges))) as Record<string, unknown>
+    v1.schemaVersion = 1
+    for (const d of v1.devices as Record<string, unknown>[]) delete d.trunks
+    for (const l of v1.links as Record<string, Record<string, unknown>>[]) {
+      delete l.a!.trunkId
+      delete l.b!.trunkId
+    }
+
+    const parsed = parseTopology(JSON.stringify(v1))
+    expect(parsed.ok).toBe(true)
+    if (!parsed.ok) return
+    expect(parsed.data.devices[0]?.trunks).toEqual([])
+    expect(parsed.data.links[0]?.a.trunkId).toBeNull()
+
+    const state = fromTopology(parsed.data)
+    expect(state.edges[0]?.sourceHandle).toBe(edges[0]?.sourceHandle)
   })
 })
 

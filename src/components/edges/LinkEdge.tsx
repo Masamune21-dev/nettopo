@@ -7,6 +7,7 @@ import {
   useStore,
 } from '@xyflow/react'
 import { memo } from 'react'
+import { summarizeTrunk } from '@/lib/trunks'
 import { useUiStore } from '@/store/useUiStore'
 import type { AppEdge, AppNode } from '@/store/types'
 import { isDeviceNode } from '@/store/types'
@@ -25,19 +26,28 @@ function LinkEdgeInner({
 }: EdgeProps<AppEdge>) {
   const showPortLabels = useUiStore((s) => s.showPortLabels)
 
-  const portNames = useStore((s) => {
-    if (!showPortLabels) return null
-    const src = s.nodeLookup.get(source)
-    const dst = s.nodeLookup.get(target)
-    const find = (node: typeof src, handle: string | null | undefined) => {
-      if (!node || !handle) return ''
-      const n = node.internals.userNode as AppNode
-      if (!isDeviceNode(n)) return ''
-      return n.data.ports.find((p) => p.id === handle)?.name ?? ''
-    }
+  // Dikembalikan sebagai satu string agar perbandingan selector tetap murah:
+  // objek baru tiap render akan memicu re-render di setiap perubahan store.
+  const endpoints = useStore((s) => {
     const edge = s.edgeLookup.get(id)
-    return { a: find(src, edge?.sourceHandle), b: find(dst, edge?.targetHandle) }
+    const describe = (nodeId: string, handle: string | null | undefined) => {
+      const node = s.nodeLookup.get(nodeId)
+      if (!node || !handle) return '\u0000'
+      const n = node.internals.userNode as AppNode
+      if (!isDeviceNode(n)) return '\u0000'
+      const trunk = n.data.trunks.find((t) => t.id === handle)
+      if (trunk) return `${trunk.name}\u0001${summarizeTrunk(trunk, n.data.ports).composition}`
+      const port = n.data.ports.find((p) => p.id === handle)
+      return port ? `${port.name}\u0001` : '\u0000'
+    }
+    return `${describe(source, edge?.sourceHandle)}\u0002${describe(target, edge?.targetHandle)}`
   })
+
+  const [aSide, bSide] = endpoints.split('\u0002').map((part) => {
+    const [name, composition] = part.split('\u0001')
+    return { name: name === '\u0000' ? '' : (name ?? ''), composition: composition ?? '' }
+  })
+  const bundle = aSide?.composition || bSide?.composition
 
   // Arah keluar kabel dihitung dari posisi relatif kedua ujung, bukan dari sisi
   // handle-nya. Tanpa ini kabel sering melingkar balik saat port ada di sisi
@@ -107,15 +117,17 @@ function LinkEdgeInner({
             color: 'var(--text)',
           }}
         >
-          <span style={{ color }}>{speed}</span>
-          {kind === 'lacp' ? <span style={{ color: 'var(--muted)' }}>LACP</span> : null}
+          <span style={{ color }}>{bundle || speed}</span>
+          {kind === 'lacp' ? (
+            <span style={{ color: 'var(--muted)' }}>{bundle ? 'LACP' : 'bundle'}</span>
+          ) : null}
           {data?.vlans ? (
             <span style={{ color: 'var(--muted)' }}>vl {data.vlans}</span>
           ) : null}
           {data?.label ? <span style={{ color: 'var(--muted)' }}>{data.label}</span> : null}
         </div>
 
-        {portNames?.a ? (
+        {showPortLabels && aSide?.name ? (
           <div
             className="nodrag nopan pointer-events-none absolute font-mono text-[8.5px]"
             style={{
@@ -123,10 +135,10 @@ function LinkEdgeInner({
               color: 'var(--muted)',
             }}
           >
-            {portNames.a}
+            {aSide.name}
           </div>
         ) : null}
-        {portNames?.b ? (
+        {showPortLabels && bSide?.name ? (
           <div
             className="nodrag nopan pointer-events-none absolute font-mono text-[8.5px]"
             style={{
@@ -134,7 +146,7 @@ function LinkEdgeInner({
               color: 'var(--muted)',
             }}
           >
-            {portNames.b}
+            {bSide.name}
           </div>
         ) : null}
       </EdgeLabelRenderer>

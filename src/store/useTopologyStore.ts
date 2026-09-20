@@ -11,7 +11,8 @@ import { create } from 'zustand'
 import { getModel } from '@/data/deviceCatalog'
 import { uid } from '@/lib/id'
 import { buildPorts, nextPortName } from '@/lib/ports'
-import type { LinkMedia, Port, Speed } from '@/types/topology'
+import { isTrunkMember, nextTrunkName, summarizeTrunk, trunkOfPort } from '@/lib/trunks'
+import type { LinkMedia, Port, Speed, Trunk } from '@/types/topology'
 import {
   type AppEdge,
   type AppNode,
@@ -52,6 +53,12 @@ interface TopologyState {
   addPort: (deviceId: string) => void
   removePort: (deviceId: string, portId: string) => void
   toggleExpanded: (deviceId: string) => void
+
+  createTrunk: (deviceId: string, memberIds: string[]) => void
+  updateTrunk: (deviceId: string, trunkId: string, patch: Partial<Trunk>) => void
+  deleteTrunk: (deviceId: string, trunkId: string) => void
+  addTrunkMembers: (deviceId: string, trunkId: string, portIds: string[]) => void
+  removeTrunkMember: (deviceId: string, trunkId: string, portId: string) => void
 
   updateLink: (edgeId: string, patch: Partial<AppEdge['data']>) => void
   flipLink: (edgeId: string) => void
@@ -100,6 +107,33 @@ function autoHostname(modelId: string, nodes: AppNode[]): string {
 function mediaForPort(port: Port | undefined): LinkMedia {
   if (!port) return 'fiber'
   return port.media === 'rj45' ? 'copper' : 'fiber'
+}
+
+interface ResolvedHandle {
+  kind: 'port' | 'trunk'
+  name: string
+  speed: Speed | undefined
+  media: LinkMedia
+  memberCount: number
+}
+
+/** Sebuah handle di node bisa port fisik atau trunk; keduanya diperlakukan seragam. */
+function resolveHandle(device: DeviceNode, handleId: string): ResolvedHandle | undefined {
+  const trunk = device.data.trunks.find((t) => t.id === handleId)
+  if (trunk) {
+    const summary = summarizeTrunk(trunk, device.data.ports)
+    const first = device.data.ports.find((p) => p.id === trunk.memberIds[0])
+    return {
+      kind: 'trunk',
+      name: trunk.name,
+      speed: summary.memberSpeed ?? first?.speed,
+      media: mediaForPort(first),
+      memberCount: summary.count,
+    }
+  }
+  const port = device.data.ports.find((p) => p.id === handleId)
+  if (!port) return undefined
+  return { kind: 'port', name: port.name, speed: port.speed, media: mediaForPort(port), memberCount: 1 }
 }
 
 /** Kecepatan link = yang paling rendah di antara dua port (leher botol nyata). */
@@ -168,34 +202,46 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
         return
       }
 
-      const used = (deviceId: string, portId: string) =>
+      const busy = (deviceId: string, handleId: string) =>
         edges.some(
           (e) =>
-            (e.source === deviceId && e.sourceHandle === portId) ||
-            (e.target === deviceId && e.targetHandle === portId),
+            (e.source === deviceId && e.sourceHandle === handleId) ||
+            (e.target === deviceId && e.targetHandle === handleId),
         )
 
       const deviceOf = (id: string) => nodes.find((n): n is DeviceNode => n.id === id && isDeviceNode(n))
       const srcDev = deviceOf(source)
       const dstDev = deviceOf(target)
-      const srcPort = srcDev?.data.ports.find((p) => p.id === sourceHandle)
-      const dstPort = dstDev?.data.ports.find((p) => p.id === targetHandle)
+      const src = srcDev ? resolveHandle(srcDev, sourceHandle) : undefined
+      const dst = dstDev ? resolveHandle(dstDev, targetHandle) : undefined
 
-      if (used(source, sourceHandle)) {
-        pushToast(`Port ${srcPort?.name ?? ''} di ${srcDev?.data.hostname ?? ''} sudah terpakai.`, 'warn')
+      if (busy(source, sourceHandle)) {
+        pushToast(`${src?.name ?? 'Port'} di ${srcDev?.data.hostname ?? ''} sudah terpakai.`, 'warn')
         return
       }
-      if (used(target, targetHandle)) {
-        pushToast(`Port ${dstPort?.name ?? ''} di ${dstDev?.data.hostname ?? ''} sudah terpakai.`, 'warn')
+      if (busy(target, targetHandle)) {
+        pushToast(`${dst?.name ?? 'Port'} di ${dstDev?.data.hostname ?? ''} sudah terpakai.`, 'warn')
         return
       }
 
-      const speed = slowerOf(srcPort?.speed, dstPort?.speed)
-      if (srcPort && dstPort && srcPort.speed !== dstPort.speed) {
+      const speed = slowerOf(src?.speed, dst?.speed)
+      const isBundle = src?.kind === 'trunk' || dst?.kind === 'trunk'
+
+      if (src && dst && src.speed && dst.speed && src.speed !== dst.speed) {
         pushToast(
-          `Kecepatan port berbeda (${srcPort.speed} ↔ ${dstPort.speed}); link dipakai ${speed}.`,
+          `Kecepatan berbeda (${src.speed} ↔ ${dst.speed}); link dipakai ${speed}.`,
           'warn',
         )
+      }
+      if (src?.kind === 'trunk' && dst?.kind === 'trunk' && src.memberCount !== dst.memberCount) {
+        pushToast(
+          `Jumlah anggota trunk berbeda: ${src.name} ${src.memberCount} port ↔ ${dst.name} ${dst.memberCount} port.`,
+          'warn',
+        )
+      }
+      if (src && dst && src.kind !== dst.kind) {
+        const trunkSide = src.kind === 'trunk' ? src : dst
+        pushToast(`${trunkSide.name} disambung ke port tunggal — pastikan ini memang disengaja.`, 'warn')
       }
 
       withHistory(() =>
@@ -207,8 +253,8 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
               type: 'link',
               data: {
                 speed,
-                media: mediaForPort(srcPort),
-                kind: 'single',
+                media: src?.media ?? 'fiber',
+                kind: isBundle ? 'lacp' : 'single',
                 label: '',
                 vlans: '',
                 color: null,
@@ -242,6 +288,7 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
           site: get().site,
           notes: '',
           ports,
+          trunks: [],
           expanded: ports.length <= 16,
         },
       }
@@ -285,7 +332,13 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
       ),
 
     removePort: (deviceId, portId) => {
-      const { edges } = get()
+      const { edges, nodes } = get()
+      const device = nodes.find((n): n is DeviceNode => n.id === deviceId && isDeviceNode(n))
+      const owner = device ? trunkOfPort(device.data.trunks, portId) : undefined
+      if (owner) {
+        get().pushToast(`Port ini anggota ${owner.name} — keluarkan dari trunk dulu.`, 'warn')
+        return
+      }
       const attached = edges.some(
         (e) =>
           (e.source === deviceId && e.sourceHandle === portId) ||
@@ -308,6 +361,152 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
       patchNode(deviceId, (n) =>
         isDeviceNode(n) ? { ...n, data: { ...n.data, expanded: !n.data.expanded } } : n,
       ),
+
+    /* ── Trunk / bonding ────────────────────────────────────────────────── */
+
+    createTrunk: (deviceId, memberIds) => {
+      const { nodes, edges } = get()
+      const device = nodes.find((n): n is DeviceNode => n.id === deviceId && isDeviceNode(n))
+      if (!device) return
+      if (memberIds.length < 2) {
+        get().pushToast('Trunk butuh minimal 2 port anggota.', 'warn')
+        return
+      }
+
+      const taken = memberIds.find((id) => isTrunkMember(device.data.trunks, id))
+      if (taken) {
+        const name = device.data.ports.find((p) => p.id === taken)?.name ?? ''
+        get().pushToast(`Port ${name} sudah menjadi anggota trunk lain.`, 'warn')
+        return
+      }
+
+      const linked = memberIds.find((id) =>
+        edges.some(
+          (e) =>
+            (e.source === deviceId && e.sourceHandle === id) ||
+            (e.target === deviceId && e.targetHandle === id),
+        ),
+      )
+      if (linked) {
+        const name = device.data.ports.find((p) => p.id === linked)?.name ?? ''
+        get().pushToast(`Port ${name} masih punya link sendiri — hapus link itu dulu.`, 'warn')
+        return
+      }
+
+      const os = getModel(device.data.modelId)?.os
+      const trunk: Trunk = {
+        id: uid('trk'),
+        name: nextTrunkName(os, device.data.trunks),
+        mode: 'lacp',
+        memberIds: [...memberIds],
+        description: '',
+        side: device.data.trunks.length % 2 === 0 ? 'left' : 'right',
+      }
+
+      withHistory(() =>
+        patchNode(deviceId, (n) =>
+          isDeviceNode(n) ? { ...n, data: { ...n.data, trunks: [...n.data.trunks, trunk] } } : n,
+        ),
+      )
+      get().pushToast(`${trunk.name} dibuat dengan ${memberIds.length} port anggota.`, 'ok')
+    },
+
+    updateTrunk: (deviceId, trunkId, patch) =>
+      withHistory(() =>
+        patchNode(deviceId, (n) =>
+          isDeviceNode(n)
+            ? {
+                ...n,
+                data: {
+                  ...n.data,
+                  trunks: n.data.trunks.map((t) => (t.id === trunkId ? { ...t, ...patch } : t)),
+                },
+              }
+            : n,
+        ),
+      ),
+
+    deleteTrunk: (deviceId, trunkId) =>
+      withHistory(() =>
+        set((s) => ({
+          nodes: s.nodes.map((n) =>
+            n.id === deviceId && isDeviceNode(n)
+              ? { ...n, data: { ...n.data, trunks: n.data.trunks.filter((t) => t.id !== trunkId) } }
+              : n,
+          ),
+          // Link yang menempel pada trunk ikut dilepas — port anggotanya kembali bebas.
+          edges: s.edges.filter(
+            (e) =>
+              !(e.source === deviceId && e.sourceHandle === trunkId) &&
+              !(e.target === deviceId && e.targetHandle === trunkId),
+          ),
+        })),
+      ),
+
+    addTrunkMembers: (deviceId, trunkId, portIds) => {
+      const { nodes, edges } = get()
+      const device = nodes.find((n): n is DeviceNode => n.id === deviceId && isDeviceNode(n))
+      if (!device) return
+
+      const usable = portIds.filter((id) => {
+        if (isTrunkMember(device.data.trunks, id)) return false
+        return !edges.some(
+          (e) =>
+            (e.source === deviceId && e.sourceHandle === id) ||
+            (e.target === deviceId && e.targetHandle === id),
+        )
+      })
+      if (usable.length === 0) {
+        get().pushToast('Port yang dipilih sudah jadi anggota trunk atau sudah punya link.', 'warn')
+        return
+      }
+
+      withHistory(() =>
+        patchNode(deviceId, (n) =>
+          isDeviceNode(n)
+            ? {
+                ...n,
+                data: {
+                  ...n.data,
+                  trunks: n.data.trunks.map((t) =>
+                    t.id === trunkId ? { ...t, memberIds: [...t.memberIds, ...usable] } : t,
+                  ),
+                },
+              }
+            : n,
+        ),
+      )
+    },
+
+    removeTrunkMember: (deviceId, trunkId, portId) => {
+      const { nodes } = get()
+      const device = nodes.find((n): n is DeviceNode => n.id === deviceId && isDeviceNode(n))
+      const trunk = device?.data.trunks.find((t) => t.id === trunkId)
+      if (trunk && trunk.memberIds.length <= 2) {
+        get().pushToast(
+          `${trunk.name} tinggal 2 anggota — hapus trunk-nya kalau memang tidak dipakai lagi.`,
+          'warn',
+        )
+        return
+      }
+      withHistory(() =>
+        patchNode(deviceId, (n) =>
+          isDeviceNode(n)
+            ? {
+                ...n,
+                data: {
+                  ...n.data,
+                  trunks: n.data.trunks.map((t) =>
+                    t.id === trunkId
+                      ? { ...t, memberIds: t.memberIds.filter((m) => m !== portId) }
+                      : t,
+                  ),
+                },
+              }
+            : n,
+        ),
+      )
+    },
 
     /* ── Link ───────────────────────────────────────────────────────────── */
 
@@ -363,7 +562,14 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
           isDeviceNode(n)
             ? {
                 ...n,
-                data: { ...n.data, modelId, role: model.role, ports, expanded: ports.length <= 16 },
+                data: {
+                  ...n.data,
+                  modelId,
+                  role: model.role,
+                  ports,
+                  trunks: [],
+                  expanded: ports.length <= 16,
+                },
               }
             : n,
         ),
@@ -453,6 +659,8 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
       const copies: AppNode[] = selected.map((n) => {
         const position = { x: n.position.x + 48, y: n.position.y + 48 }
         if (isDeviceNode(n)) {
+          const portIdMap = new Map(n.data.ports.map((p) => [p.id, uid('p')]))
+          const portCopies = n.data.ports.map((p) => ({ ...p, id: portIdMap.get(p.id) as string }))
           return {
             ...n,
             id: uid('dev'),
@@ -461,7 +669,12 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
             data: {
               ...n.data,
               hostname: autoHostname(n.data.modelId, nodes),
-              ports: n.data.ports.map((p) => ({ ...p, id: uid('p') })),
+              ports: portCopies,
+              trunks: n.data.trunks.map((t) => ({
+                ...t,
+                id: uid('trk'),
+                memberIds: t.memberIds.map((m) => portIdMap.get(m) ?? m),
+              })),
             },
           } satisfies AppNode
         }
