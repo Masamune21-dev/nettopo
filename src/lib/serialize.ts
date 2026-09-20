@@ -69,6 +69,8 @@ export function toTopology(
       label: e.data?.label ?? '',
       vlans: e.data?.vlans ?? '',
       color: e.data?.color ?? null,
+      routing: e.data?.routing ?? 'bezier',
+      waypoints: e.data?.waypoints ?? [],
     })),
     groups: nodes.filter(isGroupNode).map((n) => ({
       id: n.id,
@@ -148,6 +150,8 @@ export function fromTopology(t: Topology): {
       label: l.label,
       vlans: l.vlans,
       color: l.color,
+      routing: l.routing,
+      waypoints: l.waypoints,
     },
   }))
 

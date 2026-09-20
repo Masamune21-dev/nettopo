@@ -2,17 +2,33 @@ import {
   BaseEdge,
   EdgeLabelRenderer,
   type EdgeProps,
-  getBezierPath,
   Position,
+  useReactFlow,
   useStore,
 } from '@xyflow/react'
-import { memo } from 'react'
+import { memo, useCallback, useRef } from 'react'
+import { buildEdgePath, endpointDirections } from '@/lib/edgePath'
 import { ifaceVlanLabel } from '@/lib/iface'
 import { summarizeTrunk } from '@/lib/trunks'
+import { useTopologyStore } from '@/store/useTopologyStore'
 import { useUiStore } from '@/store/useUiStore'
 import type { AppEdge, AppNode } from '@/store/types'
 import { isDeviceNode } from '@/store/types'
 import { SPEED_COLOR, SPEED_WIDTH } from '@/types/topology'
+
+/** Geser label nama port ke arah kabel keluar, bukan menumpuk di atas portnya. */
+function labelOffset(pos: Position): { x: number; y: number } {
+  switch (pos) {
+    case Position.Right:
+      return { x: 30, y: -9 }
+    case Position.Left:
+      return { x: -30, y: -9 }
+    case Position.Bottom:
+      return { x: 0, y: 14 }
+    default:
+      return { x: 0, y: -14 }
+  }
+}
 
 function LinkEdgeInner({
   id,
@@ -26,6 +42,12 @@ function LinkEdgeInner({
   selected,
 }: EdgeProps<AppEdge>) {
   const showPortLabels = useUiStore((s) => s.showPortLabels)
+  const { screenToFlowPosition } = useReactFlow()
+  const setWaypoints = useTopologyStore((st) => st.setWaypoints)
+  const addWaypoint = useTopologyStore((st) => st.addWaypoint)
+  const removeWaypoint = useTopologyStore((st) => st.removeWaypoint)
+  const commit = useTopologyStore((st) => st.commit)
+  const dragging = useRef(false)
 
   // Dikembalikan sebagai satu string agar perbandingan selector tetap murah:
   // objek baru tiap render akan memicu re-render di setiap perubahan store.
@@ -58,35 +80,24 @@ function LinkEdgeInner({
   // VLAN diambil dari konfigurasi interface; kolom VLAN pada link hanya penimpa manual.
   const vlanLabel = data?.vlans ? `vl ${data.vlans}` : aSide?.vlan || bSide?.vlan || ''
 
-  // Arah keluar kabel dihitung dari posisi relatif kedua ujung, bukan dari sisi
-  // handle-nya. Tanpa ini kabel sering melingkar balik saat port ada di sisi
-  // yang "salah" terhadap perangkat lawannya.
-  const dx = targetX - sourceX
-  const dy = targetY - sourceY
-  const horizontal = Math.abs(dx) >= Math.abs(dy)
-  const sPos = horizontal
-    ? dx >= 0
-      ? Position.Right
-      : Position.Left
-    : dy >= 0
-      ? Position.Bottom
-      : Position.Top
-  const tPos = horizontal
-    ? dx >= 0
-      ? Position.Left
-      : Position.Right
-    : dy >= 0
-      ? Position.Top
-      : Position.Bottom
-
-  const [path, labelX, labelY] = getBezierPath({
+  const waypoints = data?.waypoints ?? []
+  const routing = data?.routing ?? 'bezier'
+  const { sourcePosition: sPos, targetPosition: tPos } = endpointDirections(
     sourceX,
     sourceY,
-    sourcePosition: sPos,
     targetX,
     targetY,
+    waypoints,
+  )
+  const [path, labelX, labelY] = buildEdgePath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition: sPos,
     targetPosition: tPos,
-    curvature: 0.3,
+    routing,
+    waypoints,
   })
 
   const speed = data?.speed ?? '1G'
@@ -104,6 +115,43 @@ function LinkEdgeInner({
     strokeDasharray: dash,
     strokeLinecap: 'round' as const,
   }
+
+  const startDrag = useCallback(
+    (index: number) => (event: React.PointerEvent) => {
+      event.stopPropagation()
+      event.preventDefault()
+      const target = event.currentTarget as HTMLElement
+      target.setPointerCapture(event.pointerId)
+      // Satu langkah undo untuk satu kali geser, bukan per gerakan mouse.
+      commit()
+      dragging.current = true
+
+      const onMove = (e: PointerEvent) => {
+        const point = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+        const current = useTopologyStore.getState().edges.find((x) => x.id === id)?.data?.waypoints ?? []
+        const next = [...current]
+        next[index] = { x: Math.round(point.x), y: Math.round(point.y) }
+        setWaypoints(id, next)
+      }
+      const onUp = () => {
+        dragging.current = false
+        target.removeEventListener('pointermove', onMove)
+        target.removeEventListener('pointerup', onUp)
+      }
+      target.addEventListener('pointermove', onMove)
+      target.addEventListener('pointerup', onUp)
+    },
+    [commit, id, screenToFlowPosition, setWaypoints],
+  )
+
+  /** Titik tengah tiap ruas — diklik untuk menambah belokan baru di situ. */
+  const chain = [{ x: sourceX, y: sourceY }, ...waypoints, { x: targetX, y: targetY }]
+  const insertPoints = selected
+    ? chain.slice(0, -1).map((p, i) => {
+        const next = chain[i + 1]!
+        return { index: i, x: (p.x + next.x) / 2, y: (p.y + next.y) / 2 }
+      })
+    : []
 
   return (
     <>
@@ -134,11 +182,54 @@ function LinkEdgeInner({
           {data?.label ? <span style={{ color: 'var(--muted)' }}>{data.label}</span> : null}
         </div>
 
+        {selected
+          ? insertPoints.map((p) => (
+              <button
+                key={`add-${p.index}`}
+                type="button"
+                className="nodrag nopan absolute size-[9px] cursor-copy rounded-full border opacity-50 hover:opacity-100"
+                style={{
+                  transform: `translate(-50%, -50%) translate(${p.x}px, ${p.y}px)`,
+                  pointerEvents: 'all',
+                  background: 'var(--panel)',
+                  borderColor: color,
+                }}
+                title="Klik untuk menambah titik belok di sini"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  addWaypoint(id, p.index, { x: Math.round(p.x), y: Math.round(p.y) })
+                }}
+              />
+            ))
+          : null}
+
+        {selected
+          ? waypoints.map((p, i) => (
+              <div
+                key={`wp-${i}`}
+                className="nodrag nopan absolute size-3 cursor-grab rounded-full border-2 shadow active:cursor-grabbing"
+                style={{
+                  transform: `translate(-50%, -50%) translate(${p.x}px, ${p.y}px)`,
+                  pointerEvents: 'all',
+                  background: 'var(--panel)',
+                  borderColor: color,
+                  touchAction: 'none',
+                }}
+                title="Geser untuk membelokkan kabel · klik ganda untuk menghapus"
+                onPointerDown={startDrag(i)}
+                onDoubleClick={(e) => {
+                  e.stopPropagation()
+                  removeWaypoint(id, i)
+                }}
+              />
+            ))
+          : null}
+
         {showPortLabels && aSide?.name ? (
           <div
             className="nodrag nopan pointer-events-none absolute font-mono text-[8.5px]"
             style={{
-              transform: `translate(-50%, -50%) translate(${sourceX + (horizontal ? (dx >= 0 ? 30 : -30) : 0)}px, ${sourceY + (horizontal ? -9 : dy >= 0 ? 14 : -14)}px)`,
+              transform: `translate(-50%, -50%) translate(${sourceX + labelOffset(sPos).x}px, ${sourceY + labelOffset(sPos).y}px)`,
               color: 'var(--muted)',
             }}
           >
@@ -149,7 +240,7 @@ function LinkEdgeInner({
           <div
             className="nodrag nopan pointer-events-none absolute font-mono text-[8.5px]"
             style={{
-              transform: `translate(-50%, -50%) translate(${targetX + (horizontal ? (dx >= 0 ? -30 : 30) : 0)}px, ${targetY + (horizontal ? -9 : dy >= 0 ? -14 : 14)}px)`,
+              transform: `translate(-50%, -50%) translate(${targetX + labelOffset(tPos).x}px, ${targetY + labelOffset(tPos).y}px)`,
               color: 'var(--muted)',
             }}
           >

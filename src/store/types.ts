@@ -1,5 +1,14 @@
 import type { Edge, Node } from '@xyflow/react'
-import type { DeviceRole, LinkKind, LinkMedia, Port, Speed, Trunk } from '@/types/topology'
+import type {
+  DeviceRole,
+  LinkKind,
+  LinkMedia,
+  Port,
+  RoutingMode,
+  Speed,
+  Trunk,
+  Waypoint,
+} from '@/types/topology'
 
 export type DeviceNodeData = {
   modelId: string
@@ -29,6 +38,8 @@ export type LinkEdgeData = {
   label: string
   vlans: string
   color: string | null
+  routing: RoutingMode
+  waypoints: Waypoint[]
 }
 
 export type AppEdge = Edge<LinkEdgeData, 'link'>

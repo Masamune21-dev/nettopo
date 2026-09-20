@@ -69,7 +69,7 @@ function fixture(): { nodes: AppNode[]; edges: AppEdge[] } {
       target: 'dev2',
       sourceHandle: mxPorts[0]!.id,
       targetHandle: crsPorts[1]!.id,
-      data: { speed: '10G', media: 'fiber', kind: 'lacp', label: 'uplink', vlans: '100', color: null },
+      data: { speed: '10G', media: 'fiber', kind: 'lacp', label: 'uplink', vlans: '100', color: null, routing: 'bezier', waypoints: [] },
     },
   ]
 

@@ -12,7 +12,19 @@ import { getModel } from '@/data/deviceCatalog'
 import { uid } from '@/lib/id'
 import { buildPorts, DEFAULT_SWITCHING, nextPortName } from '@/lib/ports'
 import { isTrunkMember, nextTrunkName, summarizeTrunk, trunkOfPort } from '@/lib/trunks'
-import type { LinkMedia, Port, Speed, Trunk } from '@/types/topology'
+import {
+  alignNodes,
+  type AlignMode,
+  autoLayout,
+  autoPortSides,
+  clearWaypoints,
+  countWaypoints,
+  distributeNodes,
+  type DistributeMode,
+  type LayoutDirection,
+  refitGroups,
+} from '@/lib/layout'
+import type { LinkMedia, Port, Speed, Trunk, Waypoint } from '@/types/topology'
 import {
   type AppEdge,
   type AppNode,
@@ -63,6 +75,15 @@ interface TopologyState {
 
   updateLink: (edgeId: string, patch: Partial<AppEdge['data']>) => void
   flipLink: (edgeId: string) => void
+  /** Dipakai saat titik belok sedang digeser — sengaja tanpa history. */
+  setWaypoints: (edgeId: string, waypoints: Waypoint[]) => void
+  addWaypoint: (edgeId: string, index: number, point: Waypoint) => void
+  removeWaypoint: (edgeId: string, index: number) => void
+  straightenLink: (edgeId: string) => void
+
+  alignSelected: (mode: AlignMode) => void
+  distributeSelected: (mode: DistributeMode) => void
+  tidyUp: (direction: LayoutDirection) => void
   setLinkEndpoint: (edgeId: string, side: 'a' | 'b', portId: string) => boolean
   changeModel: (deviceId: string, modelId: string) => void
 
@@ -259,6 +280,8 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
                 label: '',
                 vlans: '',
                 color: null,
+                routing: 'bezier',
+                waypoints: [],
               },
             },
             s.edges,
@@ -595,6 +618,85 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
               }
             : n,
         ),
+      )
+    },
+
+    setWaypoints: (edgeId, waypoints) =>
+      set((s) => ({
+        edges: s.edges.map((e) => (e.id === edgeId && e.data ? { ...e, data: { ...e.data, waypoints } } : e)),
+        dirty: true,
+      })),
+
+    addWaypoint: (edgeId, index, point) =>
+      withHistory(() =>
+        set((s) => ({
+          edges: s.edges.map((e) => {
+            if (e.id !== edgeId || !e.data) return e
+            const next = [...e.data.waypoints]
+            next.splice(index, 0, point)
+            return { ...e, data: { ...e.data, waypoints: next } }
+          }),
+        })),
+      ),
+
+    removeWaypoint: (edgeId, index) =>
+      withHistory(() =>
+        set((s) => ({
+          edges: s.edges.map((e) =>
+            e.id === edgeId && e.data
+              ? { ...e, data: { ...e.data, waypoints: e.data.waypoints.filter((_, i) => i !== index) } }
+              : e,
+          ),
+        })),
+      ),
+
+    straightenLink: (edgeId) =>
+      withHistory(() =>
+        set((s) => ({
+          edges: s.edges.map((e) =>
+            e.id === edgeId && e.data ? { ...e, data: { ...e.data, waypoints: [] } } : e,
+          ),
+        })),
+      ),
+
+    /* ── Merapikan tata letak ───────────────────────────────────────────── */
+
+    alignSelected: (mode) => {
+      const { nodes } = get()
+      const ids = new Set(nodes.filter((n) => n.selected).map((n) => n.id))
+      if (ids.size < 2) {
+        get().pushToast('Pilih minimal 2 objek untuk disejajarkan.', 'info')
+        return
+      }
+      withHistory(() => set({ nodes: alignNodes(nodes, ids, mode) }))
+    },
+
+    distributeSelected: (mode) => {
+      const { nodes } = get()
+      const ids = new Set(nodes.filter((n) => n.selected).map((n) => n.id))
+      if (ids.size < 3) {
+        get().pushToast('Pilih minimal 3 objek untuk disebar merata.', 'info')
+        return
+      }
+      withHistory(() => set({ nodes: distributeNodes(nodes, ids, mode) }))
+    },
+
+    /**
+     * Rapikan menyeluruh: susun berjenjang, pindahkan port ke sisi yang
+     * menghadap lawannya, lalu buang titik belok yang jadi tidak relevan.
+     */
+    tidyUp: (direction) => {
+      const { nodes, edges } = get()
+      const bent = countWaypoints(edges)
+      const laidOut = refitGroups(nodes, autoLayout(nodes, edges, direction))
+      withHistory(() =>
+        set({ nodes: autoPortSides(laidOut, edges), edges: clearWaypoints(edges) }),
+      )
+      get().pushToast(
+        bent > 0
+          ? `Tata letak dirapikan; ${bent} titik belok kabel ikut dibuang.`
+          : 'Tata letak dan sisi port dirapikan.',
+        'ok',
       )
     },
 

@@ -1,9 +1,16 @@
-import { ArrowLeftRight } from 'lucide-react'
+import { ArrowLeftRight, Spline } from 'lucide-react'
 import { useTopologyStore } from '@/store/useTopologyStore'
 import type { AppEdge, DeviceNode } from '@/store/types'
 import { isDeviceNode } from '@/store/types'
 import { summarizeTrunk } from '@/lib/trunks'
-import { LINK_KINDS, LINK_MEDIA, SPEED_COLOR, SPEEDS } from '@/types/topology'
+import {
+  LINK_KINDS,
+  LINK_MEDIA,
+  ROUTING_LABEL,
+  ROUTING_MODES,
+  SPEED_COLOR,
+  SPEEDS,
+} from '@/types/topology'
 
 const KIND_LABEL: Record<(typeof LINK_KINDS)[number], string> = {
   single: 'Single link',
@@ -83,6 +90,7 @@ export function LinkInspector({ edge }: { edge: AppEdge }) {
   const updateLink = useTopologyStore((s) => s.updateLink)
   const flipLink = useTopologyStore((s) => s.flipLink)
   const setLinkEndpoint = useTopologyStore((s) => s.setLinkEndpoint)
+  const straightenLink = useTopologyStore((s) => s.straightenLink)
 
   const deviceOf = (id: string) => nodes.find((n): n is DeviceNode => n.id === id && isDeviceNode(n))
   const a = deviceOf(edge.source)
@@ -212,6 +220,40 @@ export function LinkInspector({ edge }: { edge: AppEdge }) {
               Auto
             </button>
           </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="label" htmlFor="lnk-routing">
+          Gaya kabel
+        </label>
+        <select
+          id="lnk-routing"
+          className="field"
+          value={data?.routing ?? 'bezier'}
+          onChange={(e) => updateLink(edge.id, { routing: e.target.value as never })}
+        >
+          {ROUTING_MODES.map((r) => (
+            <option key={r} value={r}>
+              {ROUTING_LABEL[r]}
+            </option>
+          ))}
+        </select>
+        <div className="mt-1 flex items-center gap-2">
+          <span className="flex-1 text-[10px]" style={{ color: 'var(--muted)' }}>
+            {data?.waypoints.length
+              ? `${data.waypoints.length} titik belok`
+              : 'Pilih kabel di kanvas, lalu klik titik kecil di tengahnya untuk membelokkan.'}
+          </span>
+          {data?.waypoints.length ? (
+            <button
+              type="button"
+              className="btn shrink-0 px-1.5 py-0.5 text-[11px]"
+              onClick={() => straightenLink(edge.id)}
+            >
+              <Spline size={11} /> Luruskan
+            </button>
+          ) : null}
         </div>
       </div>
 

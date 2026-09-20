@@ -53,7 +53,7 @@ describe('validateTopology', () => {
         target: 'b',
         sourceHandle: a.data.ports[0]!.id, // et-0/0/0 = 100G
         targetHandle: b.data.ports[0]!.id, // ether1 = 1G
-        data: { speed: '1G', media: 'fiber', kind: 'single', label: '', vlans: '', color: null },
+        data: { speed: '1G', media: 'fiber', kind: 'single', label: '', vlans: '', color: null, routing: 'bezier', waypoints: [] },
       },
     ]
     const issues = validateTopology([a, b], edges)
@@ -77,7 +77,7 @@ describe('validateTopology', () => {
         target: 'b',
         sourceHandle: a.data.ports[1]!.id,
         targetHandle: b.data.ports[1]!.id,
-        data: { speed: '10G', media: 'fiber', kind: 'single', label: '', vlans: '', color: null },
+        data: { speed: '10G', media: 'fiber', kind: 'single', label: '', vlans: '', color: null, routing: 'bezier', waypoints: [] },
       },
     ]
     expect(validateTopology([a, b], edges)).toEqual([])
@@ -102,7 +102,7 @@ describe('pemeriksaan VLAN', () => {
     target: b.id,
     sourceHandle: a.data.ports[1]!.id,
     targetHandle: b.data.ports[1]!.id,
-    data: { speed: '10G', media: 'fiber', kind: 'single', label: '', vlans: '', color: null },
+    data: { speed: '10G', media: 'fiber', kind: 'single', label: '', vlans: '', color: null, routing: 'bezier', waypoints: [] },
   })
 
   it('menandai daftar VLAN yang tidak sah', () => {

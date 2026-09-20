@@ -47,6 +47,16 @@ export const PORT_MODE_COLOR: Record<PortMode, string> = {
 export const TRUNK_MODES = ['lacp', 'static'] as const
 export type TrunkMode = (typeof TRUNK_MODES)[number]
 
+/** Cara kabel digambar di kanvas. */
+export const ROUTING_MODES = ['bezier', 'smoothstep', 'straight'] as const
+export type RoutingMode = (typeof ROUTING_MODES)[number]
+
+export const ROUTING_LABEL: Record<RoutingMode, string> = {
+  bezier: 'Lengkung',
+  smoothstep: 'Siku (orthogonal)',
+  straight: 'Lurus',
+}
+
 export const LINK_KINDS = ['single', 'lacp', 'backup'] as const
 export type LinkKind = (typeof LINK_KINDS)[number]
 
@@ -197,6 +207,9 @@ export const linkSchema = z.object({
   label: z.string().default(''),
   vlans: z.string().default(''),
   color: z.string().nullable().default(null),
+  routing: z.enum(ROUTING_MODES).default('bezier'),
+  /** Titik belok yang digeser manual; kosong berarti kabel lurus otomatis. */
+  waypoints: z.array(z.object({ x: z.number(), y: z.number() })).default([]),
 })
 
 export const groupSchema = z.object({
@@ -217,7 +230,7 @@ export const noteSchema = z.object({
 
 export const topologySchema = z.object({
   // Versi 1 (tanpa trunk) tetap diterima: field baru terisi nilai bawaan.
-  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
   project: z.object({
     id: z.string(),
     name: z.string(),
@@ -235,9 +248,10 @@ export type Trunk = z.infer<typeof trunkSchema>
 export type Device = z.infer<typeof deviceSchema>
 export type Endpoint = z.infer<typeof endpointSchema>
 export type Link = z.infer<typeof linkSchema>
+export type Waypoint = { x: number; y: number }
 export type TopoGroup = z.infer<typeof groupSchema>
 export type TopoNote = z.infer<typeof noteSchema>
 export type Topology = z.infer<typeof topologySchema>
 
-export const SCHEMA_VERSION = 3 as const
-export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3] as const
+export const SCHEMA_VERSION = 4 as const
+export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4] as const

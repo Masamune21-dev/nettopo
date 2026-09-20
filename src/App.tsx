@@ -10,6 +10,7 @@ import { Toasts } from '@/components/Toasts'
 import { Toolbar } from '@/components/Toolbar'
 import { sampleTopology } from '@/data/sampleTopology'
 import { useAutosave } from '@/hooks/useAutosave'
+import { fitViewWhenReady } from '@/lib/fitView'
 import { useShortcuts } from '@/hooks/useShortcuts'
 import { uid } from '@/lib/id'
 import { lastProjectId, loadProject } from '@/lib/persistence'
@@ -56,12 +57,12 @@ function Workspace() {
     loadInitial()
   }, [replaceAll])
 
-  // Paskan tampilan begitu semua node selesai diukur; memakai timer saja
-  // sering mengenai saat ukuran node masih nol sehingga zoom melonjak.
+  // Paskan tampilan begitu semua node selesai diukur. Kalau kanvas masih
+  // berukuran nol saat itu, fitView tidak berefek — makanya dicoba ulang.
   useEffect(() => {
     if (!nodesInitialized || fitted.current) return
     fitted.current = true
-    fitView({ padding: 0.18, duration: 300 })
+    void fitViewWhenReady(fitView, { padding: 0.18, duration: 300 })
   }, [nodesInitialized, fitView])
 
   return (

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Dialog } from '@/components/Dialog'
 import { sampleTopology } from '@/data/sampleTopology'
 import { uid } from '@/lib/id'
+import { fitViewWhenReady } from '@/lib/fitView'
 import { deleteProject, listProjects, loadProject } from '@/lib/persistence'
 import { fromTopology } from '@/lib/serialize'
 import { useTopologyStore } from '@/store/useTopologyStore'
@@ -20,7 +21,7 @@ export function ProjectsDialog() {
   if (!open) return null
 
   const close = () => setUi('projectsOpen', false)
-  const refit = () => setTimeout(() => fitView({ duration: 450, padding: 0.18 }), 80)
+  const refit = () => void fitViewWhenReady(fitView, { padding: 0.18, duration: 400 })
 
   const openProject = (id: string) => {
     const topo = loadProject(id)

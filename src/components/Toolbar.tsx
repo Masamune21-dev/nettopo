@@ -20,9 +20,10 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { downloadCsvBundle } from '@/lib/exportCsv'
+import { fitViewWhenReady } from '@/lib/fitView'
 import { downloadText, slugify } from '@/lib/download'
 import { exportPng, exportSvg } from '@/lib/exportImage'
-import { autoLayout, type LayoutDirection } from '@/lib/layout'
+import type { AlignMode, DistributeMode, LayoutDirection } from '@/lib/layout'
 import { saveProject } from '@/lib/persistence'
 import { fromTopology, parseTopology, toTopology } from '@/lib/serialize'
 import { useTopologyStore } from '@/store/useTopologyStore'
@@ -169,9 +170,15 @@ export function Toolbar() {
     if (ok) store.markClean()
   }
 
+  /**
+   * Memindahkan port ke sisi lain mengubah tinggi node; sebelum pengukuran
+   * ulang selesai, fitView tidak melakukan apa-apa. Karena itu dicoba ulang.
+   */
+  const fitSoon = () => void fitViewWhenReady(fitView, { padding: 0.18, duration: 400 })
+
   const doLayout = (direction: LayoutDirection) => {
-    store.setNodesEdges(autoLayout(store.nodes, store.edges, direction), store.edges)
-    setTimeout(() => fitView({ duration: 500, padding: 0.18 }), 60)
+    store.tidyUp(direction)
+    fitSoon()
   }
 
   const onImportFile = async (file: File) => {
@@ -183,7 +190,7 @@ export function Toolbar() {
     const { nodes, edges, meta: m } = fromTopology(parsed.data)
     store.replaceAll({ nodes, edges, ...m })
     store.pushToast(`"${m.projectName}" dimuat — ${nodes.length} objek.`, 'ok')
-    setTimeout(() => fitView({ duration: 500, padding: 0.18 }), 80)
+    fitSoon()
   }
 
   const exportImage = async (kind: 'png' | 'svg') => {
@@ -319,6 +326,47 @@ export function Toolbar() {
             >
               Paskan ke layar
             </MenuItem>
+
+            <div className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
+            <div className="px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
+              Objek terpilih
+            </div>
+            {(
+              [
+                ['left', 'Rata kiri'],
+                ['hcenter', 'Rata tengah (mendatar)'],
+                ['right', 'Rata kanan'],
+                ['top', 'Rata atas'],
+                ['vcenter', 'Rata tengah (tegak)'],
+                ['bottom', 'Rata bawah'],
+              ] as [AlignMode, string][]
+            ).map(([mode, label]) => (
+              <MenuItem
+                key={mode}
+                onClick={() => {
+                  store.alignSelected(mode)
+                  close()
+                }}
+              >
+                {label}
+              </MenuItem>
+            ))}
+            {(
+              [
+                ['horizontal', 'Sebar merata mendatar'],
+                ['vertical', 'Sebar merata tegak'],
+              ] as [DistributeMode, string][]
+            ).map(([mode, label]) => (
+              <MenuItem
+                key={mode}
+                onClick={() => {
+                  store.distributeSelected(mode)
+                  close()
+                }}
+              >
+                {label}
+              </MenuItem>
+            ))}
           </>
         )}
       </Menu>

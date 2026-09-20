@@ -51,14 +51,32 @@ Buka <http://localhost:5173>.
    VLAN, kecepatan, dan sebagainya di panel kanan.
 4. Perangkat berport banyak (mis. CRS354 dengan 54 port) tampil ringkas — klik
    tanda **▸** di pojok node untuk menampilkan seluruh portnya.
-5. **Rapikan** menyusun ulang topologi secara berjenjang: internet → core →
-   SSW/agregasi → distribusi → akses.
+5. **Rapikan** menyusun ulang topologi secara berjenjang (internet → core →
+   SSW/agregasi → distribusi → akses), memindahkan tiap port ke sisi node yang
+   menghadap perangkat lawannya, dan menyesuaikan kotak area agar tetap
+   memeluk perangkat yang sama. Menu yang sama juga berisi **rata kiri/kanan/
+   atas/bawah/tengah** dan **sebar merata** untuk objek yang sedang dipilih.
 6. **Simpan** menyimpan ke browser; ada juga autosave setiap 1,5 detik setelah
    perubahan terakhir.
 7. **Ekspor** ke PNG/SVG untuk laporan, JSON untuk cadangan, atau CSV untuk
    rekap. Ekspor CSV menghasilkan tiga berkas: `-perangkat.csv`, `-link.csv`,
    dan `-interface.csv` — yang terakhir berisi link-type, PVID, VLAN
    tagged/untagged, dan IP setiap interface.
+
+### Menggeser kabel
+
+Kabel tidak harus lurus dari port ke port:
+
+1. **Klik kabelnya** di kanvas. Muncul titik-titik kecil di tengah tiap ruas.
+2. **Klik titik kecil** itu untuk menambah belokan di situ.
+3. **Geser** bulatan yang muncul untuk memindahkan belokan; **klik ganda** untuk
+   menghapusnya. Satu kali geser = satu langkah undo.
+4. Di panel kanan, **Gaya kabel** bisa diubah: *Lengkung* (bawaan), *Siku
+   (orthogonal)* untuk diagram bergaya rak, atau *Lurus*. Tombol **Luruskan**
+   membuang semua belokan pada kabel itu.
+
+Titik belok ikut tersimpan di file JSON. Auto-layout membuangnya karena posisi
+perangkat berubah — jumlah yang dibuang disebutkan di notifikasi.
 
 ### VLAN & mode interface
 
@@ -169,7 +187,7 @@ atau dibaca oleh skrip lain. Strukturnya (lihat [`src/types/topology.ts`](src/ty
 
 ```jsonc
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "project": { "id": "...", "name": "Backbone Jakarta", "site": "POP-JKT-1", "updatedAt": "..." },
   "devices": [
     {
@@ -202,7 +220,9 @@ atau dibaca oleh skrip lain. Strukturnya (lihat [`src/types/topology.ts`](src/ty
       "a": { "deviceId": "dev_1", "portId": "p_1", "trunkId": null },
       "b": { "deviceId": "dev_2", "portId": "p_9", "trunkId": null },
       "speed": "100G", "media": "fiber", "kind": "single",
-      "label": "Core ↔ SSW", "vlans": "100,200", "color": null },
+      "label": "Core ↔ SSW", "vlans": "100,200", "color": null,
+      // routing: bezier | smoothstep | straight
+      "routing": "bezier", "waypoints": [{ "x": 420, "y": 180 }] },
     { "id": "lnk_2",
       "a": { "deviceId": "dev_1", "portId": "", "trunkId": "trk_1" },
       "b": { "deviceId": "dev_3", "portId": "", "trunkId": "trk_9" },
@@ -217,9 +237,9 @@ atau dibaca oleh skrip lain. Strukturnya (lihat [`src/types/topology.ts`](src/ty
 File yang diimpor divalidasi dengan zod; kalau ada yang tidak sesuai, aplikasi
 menyebutkan field mana yang bermasalah dan tidak menimpa pekerjaan Anda.
 
-File lama tetap bisa dibuka: **versi 1** (sebelum ada trunk) dan **versi 2**
-(sebelum ada VLAN) — field baru terisi nilai bawaan, lalu file tersimpan ulang
-sebagai versi 3.
+File lama tetap bisa dibuka — **versi 1** (sebelum ada trunk), **2** (sebelum
+ada VLAN), dan **3** (sebelum kabel bisa dibelokkan). Field baru terisi nilai
+bawaan, lalu file tersimpan ulang sebagai versi 4.
 
 ---
 

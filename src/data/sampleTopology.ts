@@ -87,6 +87,8 @@ function edge(
       label: opts.label ?? '',
       vlans: opts.vlans ?? '',
       color: null,
+      routing: 'bezier',
+      waypoints: [],
     },
   }
 }
