@@ -338,6 +338,19 @@ export const DEVICE_CATALOG: DeviceModel[] = [
 
   /* ── MikroTik CRS ──────────────────────────────────────────────────────── */
   {
+    id: 'mikrotik-crs305-1g-4sp',
+    vendor: 'mikrotik',
+    series: 'CRS305',
+    model: 'CRS305-1G-4S+',
+    role: 'switch',
+    os: 'routeros',
+    note: '1× GE + 4× SFP+ 10G',
+    ports: [
+      { prefix: 'ether', count: 1, startIndex: 1, speed: '1G', media: 'rj45', group: 'Ethernet' },
+      { prefix: 'sfp-sfpplus', count: 4, startIndex: 1, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+    ],
+  },
+  {
     id: 'mikrotik-crs309-1g-8sp',
     vendor: 'mikrotik',
     series: 'CRS309',

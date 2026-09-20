@@ -89,6 +89,26 @@ describe('buildPorts', () => {
   })
 })
 
+describe('model MikroTik CRS', () => {
+  it('CRS305-1G-4S+ punya 1× GE + 4× SFP+', () => {
+    const ports = buildPorts(getModel('mikrotik-crs305-1g-4sp')!)
+    expect(ports).toHaveLength(5)
+    expect(ports.map((p) => p.name)).toEqual([
+      'ether1',
+      'sfp-sfpplus1',
+      'sfp-sfpplus2',
+      'sfp-sfpplus3',
+      'sfp-sfpplus4',
+    ])
+    expect(ports.filter((p) => p.speed === '10G')).toHaveLength(4)
+  })
+
+  it('CRS309-1G-8S+ punya 8 port SFP+', () => {
+    const ports = buildPorts(getModel('mikrotik-crs309-1g-8sp')!)
+    expect(ports.filter((p) => p.speed === '10G')).toHaveLength(8)
+  })
+})
+
 describe('model Huawei SSW', () => {
   it('S6730-H48X6C punya 48× 10GE + 6× 100GE', () => {
     const ports = buildPorts(getModel('huawei-s6730-h48x6c')!)
