@@ -47,6 +47,32 @@ karena kunci API-nya sengaja ditahan di sisi server.
 
 ---
 
+## Topologi contoh
+
+Saat pertama dibuka, aplikasi memuat contoh jaringan ISP dua POP — **23
+perangkat, 30 link** — yang bisa langsung diutak-atik atau dihapus lewat
+**Buka → Topologi baru**:
+
+- **Upstream ganda**: IIX peering dan transit internasional, masing-masing ke
+  core yang berbeda
+- **POP JKT-1**: sepasang MX204 saling silang ke dua SSW Huawei, BNG NE8000,
+  firewall manajemen, dan server NMS
+- **POP BDG-1**: MX204 dan SSW sendiri, tersambung ke Jakarta lewat jalur utama
+  dan jalur cadangan yang terpisah
+- **Eth-Trunk**: antar-SSW 2×100G, dan SSW ke distribusi MikroTik 2×10G
+- **FTTH**: OLT Huawei MA5800 dan ZTE C320, lalu ODC → ODP → ONT pelanggan
+- **VLAN**: 100 ritel, 200 korporat, 300 CCTV, 400 manajemen — konsisten dari
+  tulang punggung sampai port pelanggan
+- **13 subnet /30** untuk seluruh link L3
+
+Contoh ini sekaligus jadi rujukan konfigurasi yang benar: ada test yang menjaga
+agar ia selalu lolos **seluruh pemeriksaan tanpa satu pun peringatan** —
+kecepatan kedua ujung cocok, VLAN sepadan, tiap link L3 satu subnet, tidak ada
+port terpakai dua kali, dan tidak ada perangkat menggantung. Kalau suatu saat
+ada aturan pemeriksaan baru yang membuatnya gagal, itu ketahuan langsung.
+
+---
+
 ## Cara pakai
 
 1. **Seret perangkat** dari panel kiri ke kanvas (atau klik untuk menaruh di tengah).

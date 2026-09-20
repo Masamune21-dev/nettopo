@@ -827,8 +827,8 @@ export const DEVICE_CATALOG: DeviceModel[] = [
     os: 'other',
     note: 'Titik distribusi kabel optik',
     ports: [
-      { prefix: 'in', count: 2, startIndex: 1, speed: '1G', media: 'sfp', group: 'Feeder' },
-      { prefix: 'out', count: 12, startIndex: 1, speed: '1G', media: 'sfp', group: 'Distribusi' },
+      { prefix: 'in', count: 2, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'Feeder' },
+      { prefix: 'out', count: 12, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'Distribusi' },
     ],
   },
   {
@@ -840,8 +840,8 @@ export const DEVICE_CATALOG: DeviceModel[] = [
     os: 'other',
     note: 'Titik terminasi ke pelanggan',
     ports: [
-      { prefix: 'in', count: 1, startIndex: 1, speed: '1G', media: 'sfp', group: 'Masuk' },
-      { prefix: 'drop', count: 8, startIndex: 1, speed: '1G', media: 'sfp', group: 'Drop core' },
+      { prefix: 'in', count: 1, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'Masuk' },
+      { prefix: 'drop', count: 8, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'Drop core' },
     ],
   },
   {

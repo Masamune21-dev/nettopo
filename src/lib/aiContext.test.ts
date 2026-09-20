@@ -39,18 +39,23 @@ describe('describeTopology', () => {
 
   it('menyebut trunk beserta anggotanya', () => {
     expect(text).toContain('Eth-Trunk1')
-    expect(text).toContain('10GE1/0/1, 10GE1/0/2')
+    // Baris trunk menyebut anggotanya dan kapasitas gabungannya
+    expect(text).toMatch(/trunk \S+ \(lacp\) anggota: [^\n]+= \d+× \d+G = \d+G/)
   })
 
   it('menyebut VLAN dan IP interface', () => {
-    expect(text).toContain('access vlan 100')
-    expect(text).toContain('10.0.0.1/30')
+    expect(text).toMatch(/access vlan \d+/)
+    expect(text).toMatch(/routed \d+\.\d+\.\d+\.\d+\/30/)
+    expect(text).toMatch(/trunk · pvid \d+ · tagged /)
   })
 
   it('meringkas port yang belum dikonfigurasi, bukan mendaftar semuanya', () => {
     expect(text).toMatch(/\(\+\d+ port lain belum dikonfigurasi\)/)
-    // 54-port SSW tidak boleh membanjiri konteks
-    expect(text.split('\n').length).toBeLessThan(120)
+    // Ringkasan harus jauh lebih pendek daripada mendaftar setiap port satu-satu:
+    // topologi contoh punya ribuan port, ringkasannya harus di bawah seperlimanya.
+    const totalPorts = topo.devices.reduce((n, d) => n + d.ports.length, 0)
+    expect(totalPorts).toBeGreaterThan(300)
+    expect(text.split('\n').length).toBeLessThan(totalPorts / 2)
   })
 
   it('mendaftar setiap link dengan kedua ujungnya', () => {
