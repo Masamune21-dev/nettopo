@@ -14,6 +14,10 @@ dan bisa diekspor ke JSON, PNG, SVG, atau CSV.
 
 ---
 
+![Tampilan penuh NetTopo](docs/img/01-tampilan-penuh.png)
+
+---
+
 ## Menjalankan
 
 **Prasyarat:** [Node.js](https://nodejs.org) versi **22.12+ atau 24 LTS**
@@ -64,6 +68,12 @@ perangkat, 30 link** — yang bisa langsung diutak-atik atau dihapus lewat
 - **VLAN**: 100 ritel, 200 korporat, 300 CCTV, 400 manajemen — konsisten dari
   tulang punggung sampai port pelanggan
 - **13 subnet /30** untuk seluruh link L3
+
+![Detail perangkat, port, dan kabel](docs/img/02-detail-perangkat.png)
+
+Di kanvas terbaca langsung: badge **L3** dan alamat `/30` pada link routed,
+badge **T** untuk port bertag VLAN, Eth-Trunk beserta kapasitas gabungannya
+(`2× 100G`), VLAN yang dibawa tiap kabel, dan rantai FTTH dari OLT turun ke ODC.
 
 Contoh ini sekaligus jadi rujukan konfigurasi yang benar: ada test yang menjaga
 agar ia selalu lolos **seluruh pemeriksaan tanpa satu pun peringatan** —
@@ -129,6 +139,8 @@ perangkat berubah — jumlah yang dibuang disebutkan di notifikasi.
 
 ### Alamat IP (IPAM)
 
+![Rekap alamat IP](docs/img/05-alamat-ip.png)
+
 Tombol **IP** di toolbar membuka rekap pengalamatan seluruh topologi:
 
 - **Daftar subnet** yang sedang dipakai, lengkap dengan rentang alamat,
@@ -155,6 +167,9 @@ Masalah pengalamatan muncul di panel **Pemeriksaan** bersama temuan lain:
 | Blok kelebihan penghuni | 3 interface di dalam satu `/30` |
 
 ### VLAN & mode interface
+
+<img src="docs/img/03-panel-perangkat.png" width="380" alt="Panel properti perangkat">
+
 
 > **Catatan istilah:** "Eth-Trunk" (bonding) dan "link-type trunk" (VLAN
 > bertag) sama-sama memakai kata *trunk* tetapi berbeda hal. Di aplikasi ini
@@ -242,6 +257,8 @@ yang menyisipkannya sebagai header `Authorization` saat meneruskan permintaan �
 jadi kunci tidak muncul di tab Network, tidak ikut ter-bundle, dan `.env` sudah
 masuk `.gitignore`. Browser hanya memanggil `/ai/...` di localhost.
 
+![Asisten AI menelaah topologi](docs/img/06-asisten-ai.png)
+
 ### Lima tugas yang tersedia
 
 | Tugas | Keluaran |
@@ -269,7 +286,26 @@ dikirim ke endpoint yang Anda pasang. Untuk topologi yang sensitif, arahkan
 `AI_BASE_URL` ke model lokal (mis. `http://localhost:11434/v1`) agar datanya
 tidak meninggalkan mesin Anda.
 
-## Menambah model perangkat
+## Katalog perangkat
+
+<img src="docs/img/04-katalog.png" width="300" align="right" alt="Katalog perangkat per merek">
+
+Katalog berisi **65 model** dari lima vendor. Di panel kiri tiap merek bisa
+dilipat supaya tidak memenuhi layar — kelompok yang punya hasil pencarian
+terbuka sendiri, dan kelompok mana yang terbuka diingat.
+
+| Vendor | Jumlah | Contoh model | Pola nama interface |
+|---|---|---|---|
+| **Juniper** | 12 | MX204, MX304, MX480/960, MX10003, ACX7100, QFX5120, EX4600, EX4300, SRX4100 | `ge-0/0/x`, `xe-0/0/x`, `et-0/0/x` |
+| **Huawei** | 16 | NE8000 M8, NE40E-M2K, S5731, S5720, S6730, CE6881, CE6865E, CE8850, MA5800-X7, MA5608T | `GE0/0/x`, `10GE1/0/x`, `100GE0/1/x`, `GPON0/1/x` |
+| **MikroTik** | 18 | CCR2004/2116/2216/1036/1016, RB5009, L009, CRS305/309/312/317/326/328/354 | `ether1..n`, `sfp-sfpplus1..n`, `sfp28-1..n` |
+| **ZTE** | 3 | C320, C600 (OLT), ZXR10 5960 | `gpon-olt_1/1/x`, `xgei_1/3/x`, `cei_1/9/x` |
+| **Cisco** | 3 | ASR920-24SZ-M, ASR1001-X, Catalyst C9300-48P | `GigabitEthernet0/0/x`, `TenGigabitEthernet1/1/x` |
+| **Umum** | 13 | Router, Switch, Firewall, Server, OLT, ODC, ODP, Splitter 1:8, ONT, AP, Media Converter, CPE, Internet | bebas, port ditambah manual |
+
+<br clear="right">
+
+### Menambah model baru
 
 Semua spesifikasi hardware ada di satu file: [`src/data/deviceCatalog.ts`](src/data/deviceCatalog.ts).
 Menambah model cukup menambahkan satu entri:
@@ -362,6 +398,23 @@ menyebutkan field mana yang bermasalah dan tidak menimpa pekerjaan Anda.
 File lama tetap bisa dibuka — **versi 1** (sebelum ada trunk), **2** (sebelum
 ada VLAN), dan **3** (sebelum kabel bisa dibelokkan). Field baru terisi nilai
 bawaan, lalu file tersimpan ulang sebagai versi 4.
+
+---
+
+## Memperbarui tangkapan layar
+
+Gambar di README dibuat ulang lewat skrip, bukan ditangkap manual, supaya
+selalu konsisten dan mudah disegarkan saat tampilan berubah:
+
+```bash
+npm run dev                       # di terminal lain
+npm install --no-save playwright
+node scripts/screenshots.mjs
+```
+
+Skrip memakai Chrome yang sudah terpasang di sistem, jadi tidak perlu mengunduh
+browser terpisah. Playwright sengaja tidak dijadikan dependensi tetap karena
+hanya dibutuhkan saat memperbarui dokumentasi.
 
 ---
 
