@@ -201,6 +201,19 @@ export const DEVICE_CATALOG: DeviceModel[] = [
     ],
   },
   {
+    id: 'huawei-s6730-h48x6c',
+    vendor: 'huawei',
+    series: 'S6730',
+    model: 'S6730-H48X6C',
+    role: 'ssw',
+    os: 'vrp',
+    note: 'SSW — 48× SFP+ 10G + 6× QSFP28 100G',
+    ports: [
+      { prefix: '10GE1/0/', count: 48, startIndex: 1, speed: '10G', media: 'sfp+', group: '10GE' },
+      { prefix: '100GE1/0/', count: 6, startIndex: 1, speed: '100G', media: 'qsfp28', group: '100GE uplink' },
+    ],
+  },
+  {
     id: 'huawei-ce6881-48s6cq',
     vendor: 'huawei',
     series: 'CloudEngine',
@@ -221,6 +234,19 @@ export const DEVICE_CATALOG: DeviceModel[] = [
     role: 'ssw',
     os: 'vrp',
     note: 'SSW — 48× SFP28 25G + 8× QSFP28 100G',
+    ports: [
+      { prefix: '25GE1/0/', count: 48, startIndex: 1, speed: '25G', media: 'sfp28', group: '25GE' },
+      { prefix: '100GE1/0/', count: 8, startIndex: 1, speed: '100G', media: 'qsfp28', group: '100GE uplink' },
+    ],
+  },
+  {
+    id: 'huawei-ce6865e-48s8cq',
+    vendor: 'huawei',
+    series: 'CloudEngine',
+    model: 'CE6865E-48S8CQ',
+    role: 'ssw',
+    os: 'vrp',
+    note: 'SSW — 48× SFP28 25G + 8× QSFP28 100G (varian E)',
     ports: [
       { prefix: '25GE1/0/', count: 48, startIndex: 1, speed: '25G', media: 'sfp28', group: '25GE' },
       { prefix: '100GE1/0/', count: 8, startIndex: 1, speed: '100G', media: 'qsfp28', group: '100GE uplink' },

@@ -77,6 +77,8 @@ describe('buildPorts', () => {
     for (const id of [
       'juniper-mx10003',
       'huawei-ce6881-48s6cq',
+      'huawei-ce6865e-48s8cq',
+      'huawei-s6730-h48x6c',
       'mikrotik-ccr2216-1g-12xs-2xq',
       'mikrotik-crs354-48g-4sp2qp',
     ]) {
@@ -84,6 +86,30 @@ describe('buildPorts', () => {
       expect(ports.length).toBeGreaterThan(0)
       expect(new Set(ports.map((p) => p.name)).size, `nama port ganda di ${id}`).toBe(ports.length)
     }
+  })
+})
+
+describe('model Huawei SSW', () => {
+  it('S6730-H48X6C punya 48× 10GE + 6× 100GE', () => {
+    const ports = buildPorts(getModel('huawei-s6730-h48x6c')!)
+    expect(ports.filter((p) => p.speed === '10G')).toHaveLength(48)
+    expect(ports.filter((p) => p.speed === '100G')).toHaveLength(6)
+    expect(ports[0]?.name).toBe('10GE1/0/1')
+    expect(ports.at(-1)?.name).toBe('100GE1/0/6')
+  })
+
+  it('CE6865E-48S8CQ punya 48× 25GE + 8× 100GE', () => {
+    const ports = buildPorts(getModel('huawei-ce6865e-48s8cq')!)
+    expect(ports.filter((p) => p.speed === '25G')).toHaveLength(48)
+    expect(ports.filter((p) => p.speed === '100G')).toHaveLength(8)
+    expect(ports[0]?.name).toBe('25GE1/0/1')
+    expect(ports.at(-1)?.name).toBe('100GE1/0/8')
+  })
+
+  it('CE6881-48S6CQ punya 48× 25GE + 6× 100GE', () => {
+    const ports = buildPorts(getModel('huawei-ce6881-48s6cq')!)
+    expect(ports.filter((p) => p.speed === '25G')).toHaveLength(48)
+    expect(ports.filter((p) => p.speed === '100G')).toHaveLength(6)
   })
 })
 
