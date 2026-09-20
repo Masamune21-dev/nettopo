@@ -290,7 +290,7 @@ tidak meninggalkan mesin Anda.
 
 <img src="docs/img/04-katalog.png" width="300" align="right" alt="Katalog perangkat per merek">
 
-Katalog berisi **65 model** dari lima vendor. Di panel kiri tiap merek bisa
+Katalog berisi **89 model** dari delapan vendor. Di panel kiri tiap merek bisa
 dilipat supaya tidak memenuhi layar — kelompok yang punya hasil pencarian
 terbuka sendiri, dan kelompok mana yang terbuka diingat.
 
@@ -298,10 +298,16 @@ terbuka sendiri, dan kelompok mana yang terbuka diingat.
 |---|---|---|---|
 | **Juniper** | 12 | MX204, MX304, MX480/960, MX10003, ACX7100, QFX5120, EX4600, EX4300, SRX4100 | `ge-0/0/x`, `xe-0/0/x`, `et-0/0/x` |
 | **Huawei** | 16 | NE8000 M8, NE40E-M2K, S5731, S5720, S6730, CE6881, CE6865E, CE8850, MA5800-X7, MA5608T | `GE0/0/x`, `10GE1/0/x`, `100GE0/1/x`, `GPON0/1/x` |
-| **MikroTik** | 18 | CCR2004/2116/2216/1036/1016, RB5009, L009, CRS305/309/312/317/326/328/354 | `ether1..n`, `sfp-sfpplus1..n`, `sfp28-1..n` |
+| **MikroTik** | 30 | CCR1009/1016/1036/1072/2004/2116/2216, RB3011/4011/5009, hEX S, L009, CRS112/305/309/310/312/317/326/328/354/504/518, CSS326/610, netPower | `ether1..n`, `sfp-sfpplus1..n`, `sfp28-1..n`, `qsfp28-1-1` |
 | **ZTE** | 3 | C320, C600 (OLT), ZXR10 5960 | `gpon-olt_1/1/x`, `xgei_1/3/x`, `cei_1/9/x` |
 | **Cisco** | 3 | ASR920-24SZ-M, ASR1001-X, Catalyst C9300-48P | `GigabitEthernet0/0/x`, `TenGigabitEthernet1/1/x` |
+| **Ubiquiti** | 5 | EdgeRouter 4, EdgeRouter X, UniFi USW-Pro-24-PoE, USW-Aggregation, AP U6-Pro | `eth0..n`, `port1..n`, `sfpplus1..n` |
+| **TP-Link** | 3 | TL-SG3428X, TL-SG2210P, MC220L | `Gi1/0/x`, `Te1/0/x` |
+| **HTB** | 4 | HTB-GS-03, HTB-GS-03 A/B, HTB-1100S, HTB-3100 A/B | `fiber1`, `utp1` |
 | **Umum** | 13 | Router, Switch, Firewall, Server, OLT, ODC, ODP, Splitter 1:8, ONT, AP, Media Converter, CPE, Internet | bebas, port ditambah manual |
+
+Media converter punya perannya sendiri, jadi auto-layout menaruhnya sejajar
+lapisan akses — bukan ikut turun ke lapisan pelanggan.
 
 <br clear="right">
 

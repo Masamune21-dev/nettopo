@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRight,
   Cloud,
   GitFork,
   MonitorSmartphone,
@@ -25,6 +26,7 @@ const MAP: Record<DeviceRole, ComponentType<{ size?: number; strokeWidth?: numbe
   olt: Split,
   internet: Cloud,
   cpe: MonitorSmartphone,
+  converter: ArrowLeftRight,
   passive: GitFork,
 }
 

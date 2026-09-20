@@ -11,7 +11,16 @@ import type { DeviceRole, Media, Speed } from '@/types/topology'
  * lewat tabel port di panel Inspector.
  */
 
-export type Vendor = 'juniper' | 'huawei' | 'mikrotik' | 'zte' | 'cisco' | 'generic'
+export type Vendor =
+  | 'juniper'
+  | 'huawei'
+  | 'mikrotik'
+  | 'zte'
+  | 'cisco'
+  | 'ubiquiti'
+  | 'tplink'
+  | 'htb'
+  | 'generic'
 
 export interface PortTemplate {
   /** Awalan nama interface, mis. "ge-0/0/", "sfp-sfpplus", "10GE1/0/" */
@@ -45,6 +54,9 @@ export const VENDOR_META: Record<Vendor, { label: string; color: string }> = {
   mikrotik: { label: 'MikroTik', color: '#f97316' },
   zte: { label: 'ZTE', color: '#1e40af' },
   cisco: { label: 'Cisco', color: '#0ea5e9' },
+  ubiquiti: { label: 'Ubiquiti', color: '#06b6d4' },
+  tplink: { label: 'TP-Link', color: '#16a34a' },
+  htb: { label: 'HTB', color: '#eab308' },
   generic: { label: 'Umum', color: '#64748b' },
 }
 
@@ -54,6 +66,9 @@ export const VENDOR_ORDER: Vendor[] = [
   'mikrotik',
   'zte',
   'cisco',
+  'ubiquiti',
+  'tplink',
+  'htb',
   'generic',
 ]
 
@@ -502,6 +517,58 @@ export const DEVICE_CATALOG: DeviceModel[] = [
     ],
   },
   {
+    id: 'mikrotik-ccr1036-12g-4s',
+    vendor: 'mikrotik',
+    series: 'CCR1036',
+    model: 'CCR1036-12G-4S',
+    role: 'router',
+    os: 'routeros',
+    note: '12× GE + 4× SFP 1G',
+    ports: [
+      { prefix: 'ether', count: 12, startIndex: 1, speed: '1G', media: 'rj45', group: 'Ethernet' },
+      { prefix: 'sfp', count: 4, startIndex: 1, speed: '1G', media: 'sfp', group: 'SFP 1G' },
+    ],
+  },
+  {
+    id: 'mikrotik-rb4011igs',
+    vendor: 'mikrotik',
+    series: 'RB4011',
+    model: 'RB4011iGS+',
+    role: 'router',
+    os: 'routeros',
+    note: '10× GE + 1× SFP+ 10G',
+    ports: [
+      { prefix: 'ether', count: 10, startIndex: 1, speed: '1G', media: 'rj45', group: 'Ethernet' },
+      { prefix: 'sfp-sfpplus', count: 1, startIndex: 1, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+    ],
+  },
+  {
+    id: 'mikrotik-rb3011uias',
+    vendor: 'mikrotik',
+    series: 'RB3011',
+    model: 'RB3011UiAS-RM',
+    role: 'router',
+    os: 'routeros',
+    note: '10× GE + 1× SFP 1G',
+    ports: [
+      { prefix: 'ether', count: 10, startIndex: 1, speed: '1G', media: 'rj45', group: 'Ethernet' },
+      { prefix: 'sfp', count: 1, startIndex: 1, speed: '1G', media: 'sfp', group: 'SFP 1G' },
+    ],
+  },
+  {
+    id: 'mikrotik-hex-s',
+    vendor: 'mikrotik',
+    series: 'hEX',
+    model: 'hEX S (RB760iGS)',
+    role: 'router',
+    os: 'routeros',
+    note: '5× GE + 1× SFP 1G',
+    ports: [
+      { prefix: 'ether', count: 5, startIndex: 1, speed: '1G', media: 'rj45', group: 'Ethernet' },
+      { prefix: 'sfp', count: 1, startIndex: 1, speed: '1G', media: 'sfp', group: 'SFP 1G' },
+    ],
+  },
+  {
     id: 'mikrotik-ccr1072-1g-8sp',
     vendor: 'mikrotik',
     series: 'CCR1072',
@@ -759,6 +826,265 @@ export const DEVICE_CATALOG: DeviceModel[] = [
     ],
   },
 
+  {
+    id: 'mikrotik-crs504-4xq',
+    vendor: 'mikrotik',
+    series: 'CRS504',
+    model: 'CRS504-4XQ',
+    role: 'metro-switch',
+    os: 'routeros',
+    note: '4× QSFP28 100G',
+    ports: [
+      { prefix: 'qsfp28-', suffix: '-1', count: 4, startIndex: 1, speed: '100G', media: 'qsfp28', group: 'QSFP28 100G' },
+    ],
+  },
+  {
+    id: 'mikrotik-crs518-16xs-2xq',
+    vendor: 'mikrotik',
+    series: 'CRS518',
+    model: 'CRS518-16XS-2XQ',
+    role: 'metro-switch',
+    os: 'routeros',
+    note: '16× SFP28 25G + 2× QSFP28 100G',
+    ports: [
+      { prefix: 'sfp28-', count: 16, startIndex: 1, speed: '25G', media: 'sfp28', group: 'SFP28 25G' },
+      { prefix: 'qsfp28-', suffix: '-1', count: 2, startIndex: 1, speed: '100G', media: 'qsfp28', group: 'QSFP28 100G' },
+    ],
+  },
+  {
+    id: 'mikrotik-crs326-24sp-2qp',
+    vendor: 'mikrotik',
+    series: 'CRS326',
+    model: 'CRS326-24S+2Q+',
+    role: 'metro-switch',
+    os: 'routeros',
+    note: '24× SFP+ 10G + 2× QSFP+ 40G',
+    ports: [
+      { prefix: 'sfp-sfpplus', count: 24, startIndex: 1, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+      { prefix: 'qsfpplus', suffix: '-1', count: 2, startIndex: 1, speed: '40G', media: 'qsfp+', group: 'QSFP+ 40G' },
+    ],
+  },
+  {
+    id: 'mikrotik-crs310-8gp-2sp',
+    vendor: 'mikrotik',
+    series: 'CRS310',
+    model: 'CRS310-8G+2S+',
+    role: 'access-switch',
+    os: 'routeros',
+    note: '8× 2.5G RJ45 + 2× SFP+ 10G',
+    ports: [
+      { prefix: 'ether', count: 8, startIndex: 1, speed: '2.5G', media: 'rj45', group: '2.5G RJ45' },
+      { prefix: 'sfp-sfpplus', count: 2, startIndex: 1, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+    ],
+  },
+  {
+    id: 'mikrotik-crs112-8g-4s',
+    vendor: 'mikrotik',
+    series: 'CRS112',
+    model: 'CRS112-8G-4S',
+    role: 'switch',
+    os: 'routeros',
+    note: '8× GE + 4× SFP 1G',
+    ports: [
+      { prefix: 'ether', count: 8, startIndex: 1, speed: '1G', media: 'rj45', group: 'Ethernet' },
+      { prefix: 'sfp', count: 4, startIndex: 1, speed: '1G', media: 'sfp', group: 'SFP 1G' },
+    ],
+  },
+  {
+    id: 'mikrotik-css326-24g-2sp',
+    vendor: 'mikrotik',
+    series: 'CSS326',
+    model: 'CSS326-24G-2S+',
+    role: 'access-switch',
+    os: 'routeros',
+    note: '24× GE + 2× SFP+ 10G',
+    ports: [
+      { prefix: 'ether', count: 24, startIndex: 1, speed: '1G', media: 'rj45', group: 'Ethernet' },
+      { prefix: 'sfp-sfpplus', count: 2, startIndex: 1, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+    ],
+  },
+  {
+    id: 'mikrotik-css610-8g-2sp',
+    vendor: 'mikrotik',
+    series: 'CSS610',
+    model: 'CSS610-8G-2S+',
+    role: 'access-switch',
+    os: 'routeros',
+    note: '8× GE + 2× SFP+ 10G',
+    ports: [
+      { prefix: 'ether', count: 8, startIndex: 1, speed: '1G', media: 'rj45', group: 'Ethernet' },
+      { prefix: 'sfp-sfpplus', count: 2, startIndex: 1, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+    ],
+  },
+  {
+    id: 'mikrotik-netpower-16p',
+    vendor: 'mikrotik',
+    series: 'netPower',
+    model: 'netPower 16P (CSS610-16P-2S+)',
+    role: 'access-switch',
+    os: 'routeros',
+    note: '16× GE PoE-out + 2× SFP+ 10G',
+    ports: [
+      { prefix: 'ether', count: 16, startIndex: 1, speed: '1G', media: 'rj45', group: 'GE PoE' },
+      { prefix: 'sfp-sfpplus', count: 2, startIndex: 1, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+    ],
+  },
+
+  /* ── Ubiquiti ──────────────────────────────────────────────────────────── */
+  {
+    id: 'ubiquiti-er-4',
+    vendor: 'ubiquiti',
+    series: 'EdgeRouter',
+    model: 'EdgeRouter 4 (ER-4)',
+    role: 'router',
+    os: 'other',
+    note: '3× GE + 1× SFP 1G',
+    ports: [
+      { prefix: 'eth', count: 3, startIndex: 0, speed: '1G', media: 'rj45', group: 'Ethernet' },
+      { prefix: 'eth', count: 1, startIndex: 3, speed: '1G', media: 'sfp', group: 'SFP 1G' },
+    ],
+  },
+  {
+    id: 'ubiquiti-er-x',
+    vendor: 'ubiquiti',
+    series: 'EdgeRouter',
+    model: 'EdgeRouter X (ER-X)',
+    role: 'router',
+    os: 'other',
+    note: '5× GE',
+    ports: [{ prefix: 'eth', count: 5, startIndex: 0, speed: '1G', media: 'rj45', group: 'Ethernet' }],
+  },
+  {
+    id: 'ubiquiti-usw-pro-24-poe',
+    vendor: 'ubiquiti',
+    series: 'UniFi',
+    model: 'UniFi USW-Pro-24-PoE',
+    role: 'access-switch',
+    os: 'other',
+    note: '24× GE PoE + 2× SFP+ 10G',
+    ports: [
+      { prefix: 'port', count: 24, startIndex: 1, speed: '1G', media: 'rj45', group: 'GE PoE' },
+      { prefix: 'sfpplus', count: 2, startIndex: 1, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+    ],
+  },
+  {
+    id: 'ubiquiti-usw-aggregation',
+    vendor: 'ubiquiti',
+    series: 'UniFi',
+    model: 'UniFi USW-Aggregation',
+    role: 'switch',
+    os: 'other',
+    note: '8× SFP+ 10G',
+    ports: [
+      { prefix: 'sfpplus', count: 8, startIndex: 1, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+    ],
+  },
+  {
+    id: 'ubiquiti-u6-pro',
+    vendor: 'ubiquiti',
+    series: 'UniFi',
+    model: 'UniFi AP U6-Pro',
+    role: 'cpe',
+    os: 'other',
+    note: 'Access point Wi-Fi 6, uplink 1× GE',
+    ports: [{ prefix: 'eth', count: 1, startIndex: 0, speed: '1G', media: 'rj45', group: 'Uplink' }],
+  },
+
+  /* ── TP-Link ───────────────────────────────────────────────────────────── */
+  {
+    id: 'tplink-tl-sg3428x',
+    vendor: 'tplink',
+    series: 'Omada',
+    model: 'TL-SG3428X',
+    role: 'access-switch',
+    os: 'other',
+    note: '24× GE + 4× SFP+ 10G',
+    ports: [
+      { prefix: 'Gi1/0/', count: 24, startIndex: 1, speed: '1G', media: 'rj45', group: 'GE' },
+      { prefix: 'Te1/0/', count: 4, startIndex: 1, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+    ],
+  },
+  {
+    id: 'tplink-tl-sg2210p',
+    vendor: 'tplink',
+    series: 'Omada',
+    model: 'TL-SG2210P',
+    role: 'access-switch',
+    os: 'other',
+    note: '8× GE PoE + 2× SFP 1G',
+    ports: [
+      { prefix: 'Gi1/0/', count: 8, startIndex: 1, speed: '1G', media: 'rj45', group: 'GE PoE' },
+      { prefix: 'Gi1/0/', count: 2, startIndex: 9, speed: '1G', media: 'sfp', group: 'SFP 1G' },
+    ],
+  },
+  {
+    id: 'tplink-mc220l',
+    vendor: 'tplink',
+    series: 'MediaConverter',
+    model: 'MC220L',
+    role: 'converter',
+    os: 'other',
+    note: 'Gigabit, 1× slot SFP + 1× RJ45',
+    ports: [
+      { prefix: 'sfp', count: 1, startIndex: 1, speed: '1G', media: 'sfp', group: 'Fiber' },
+      { prefix: 'utp', count: 1, startIndex: 1, speed: '1G', media: 'rj45', group: 'Tembaga' },
+    ],
+  },
+
+  /* ── HTB — media converter ─────────────────────────────────────────────── */
+  {
+    id: 'htb-gs-03',
+    vendor: 'htb',
+    series: 'HTB-GS',
+    model: 'HTB-GS-03',
+    role: 'converter',
+    os: 'other',
+    note: 'Gigabit, dua serat (SC), 1× fiber + 1× RJ45',
+    ports: [
+      { prefix: 'fiber', count: 1, startIndex: 1, speed: '1G', media: 'sfp', group: 'Fiber' },
+      { prefix: 'utp', count: 1, startIndex: 1, speed: '1G', media: 'rj45', group: 'Tembaga' },
+    ],
+  },
+  {
+    id: 'htb-gs-03-ab',
+    vendor: 'htb',
+    series: 'HTB-GS',
+    model: 'HTB-GS-03 A/B',
+    role: 'converter',
+    os: 'other',
+    note: 'Gigabit, serat tunggal (WDM), dipakai sepasang A dan B',
+    ports: [
+      { prefix: 'fiber', count: 1, startIndex: 1, speed: '1G', media: 'sfp', group: 'Fiber tunggal' },
+      { prefix: 'utp', count: 1, startIndex: 1, speed: '1G', media: 'rj45', group: 'Tembaga' },
+    ],
+  },
+  {
+    id: 'htb-1100s',
+    vendor: 'htb',
+    series: 'HTB-1100',
+    model: 'HTB-1100S',
+    role: 'converter',
+    os: 'other',
+    note: '10/100M, dua serat (SC)',
+    ports: [
+      { prefix: 'fiber', count: 1, startIndex: 1, speed: '100M', media: 'sfp', group: 'Fiber' },
+      { prefix: 'utp', count: 1, startIndex: 1, speed: '100M', media: 'rj45', group: 'Tembaga' },
+    ],
+  },
+  {
+    id: 'htb-3100ab',
+    vendor: 'htb',
+    series: 'HTB-3100',
+    model: 'HTB-3100 A/B',
+    role: 'converter',
+    os: 'other',
+    note: '10/100M, serat tunggal (WDM), dipakai sepasang A dan B',
+    ports: [
+      { prefix: 'fiber', count: 1, startIndex: 1, speed: '100M', media: 'sfp', group: 'Fiber tunggal' },
+      { prefix: 'utp', count: 1, startIndex: 1, speed: '100M', media: 'rj45', group: 'Tembaga' },
+    ],
+  },
+
   /* ── Umum / generik ────────────────────────────────────────────────────── */
   {
     id: 'generic-internet',
@@ -885,7 +1211,7 @@ export const DEVICE_CATALOG: DeviceModel[] = [
     vendor: 'generic',
     series: 'Umum',
     model: 'Media Converter',
-    role: 'cpe',
+    role: 'converter',
     os: 'other',
     note: 'Konverter fiber ke tembaga',
     ports: [

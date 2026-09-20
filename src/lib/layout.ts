@@ -15,6 +15,7 @@ const TIER: Record<DeviceRole, number> = {
   switch: 4,
   'access-switch': 4,
   olt: 4,
+  converter: 4,
   server: 5,
   passive: 5,
   cpe: 6,

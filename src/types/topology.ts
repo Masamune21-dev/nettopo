@@ -73,6 +73,7 @@ export const ROLES = [
   'olt',
   'internet',
   'cpe',
+  'converter',
   'passive',
 ] as const
 export type DeviceRole = (typeof ROLES)[number]
@@ -90,6 +91,7 @@ export const ROLE_LABEL: Record<DeviceRole, string> = {
   olt: 'OLT',
   internet: 'Internet / Upstream',
   cpe: 'CPE / Pelanggan',
+  converter: 'Media Converter',
   passive: 'Pasif (ODP/ODC)',
 }
 
@@ -107,6 +109,7 @@ export const ROLE_COLOR: Record<DeviceRole, string> = {
   olt: '#f97316',
   internet: '#3b82f6',
   cpe: '#94a3b8',
+  converter: '#14b8a6',
   passive: '#78716c',
 }
 

@@ -69,7 +69,12 @@ await page.waitForSelector('text=PROPERTI PERANGKAT')
 await shot('03-panel-perangkat', { clip: { x: 1258, y: 52, width: 342, height: 940 } })
 
 /* 4. Katalog — sengaja dibiarkan terlipat, karena itu yang mau ditunjukkan */
-await settle(500)
+// Digeser sedikit supaya baris merek paling bawah tidak terpotong bingkai.
+await page.evaluate(() => {
+  const list = document.querySelector('aside .thin-scroll')
+  if (list) list.scrollTop = 70
+})
+await settle(600)
 await shot('04-katalog', { clip: { x: 0, y: 52, width: 264, height: 940 } })
 
 /* Bersihkan kotak pencarian supaya tidak ada teks sisa di gambar berikutnya */
