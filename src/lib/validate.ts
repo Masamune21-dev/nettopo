@@ -1,4 +1,5 @@
 import { ifaceVlans, type IfaceConfig } from '@/lib/iface'
+import { analyzeIpam } from '@/lib/ipam'
 import { summarizeTrunk } from '@/lib/trunks'
 import { formatVlanList, parseVlanList } from '@/lib/vlans'
 import type { AppEdge, AppNode } from '@/store/types'
@@ -210,6 +211,9 @@ export function validateTopology(nodes: AppNode[], edges: AppEdge[]): Issue[] {
       })
     }
   }
+
+  // Pengalamatan IP: sintaks, alamat ganda, beda subnet di dua ujung link
+  issues.push(...analyzeIpam(nodes, edges).issues)
 
   // Perangkat tanpa link
   const connected = new Set(edges.flatMap((e) => [e.source, e.target]))

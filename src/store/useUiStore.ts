@@ -13,6 +13,7 @@ interface UiState {
   helpOpen: boolean
   projectsOpen: boolean
   aiOpen: boolean
+  ipamOpen: boolean
   setTheme: (t: Theme) => void
   toggleTheme: () => void
   set: <K extends keyof UiState>(key: K, value: UiState[K]) => void
@@ -51,6 +52,7 @@ export const useUiStore = create<UiState>()((set, get) => {
     helpOpen: false,
     projectsOpen: false,
     aiOpen: false,
+    ipamOpen: false,
     setTheme: (t) => {
       applyTheme(t)
       set({ theme: t })

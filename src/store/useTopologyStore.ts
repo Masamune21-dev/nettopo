@@ -80,6 +80,8 @@ interface TopologyState {
   addWaypoint: (edgeId: string, index: number, point: Waypoint) => void
   removeWaypoint: (edgeId: string, index: number) => void
   straightenLink: (edgeId: string) => void
+  /** Isi alamat IP kedua ujung sebuah link dalam satu langkah riwayat. */
+  assignLinkAddresses: (edgeId: string, aIp: string, bIp: string) => void
 
   /** Geser satu node sejauh dx/dy — dipakai untuk meluruskan kabel. */
   nudgeNode: (nodeId: string, dx: number, dy: number) => void
@@ -660,6 +662,38 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
           ),
         })),
       ),
+
+    assignLinkAddresses: (edgeId, aIp, bIp) => {
+      const { edges } = get()
+      const edge = edges.find((e) => e.id === edgeId)
+      if (!edge) return
+
+      const apply = (n: AppNode, handleId: string | null | undefined, ip: string): AppNode => {
+        if (!isDeviceNode(n) || !handleId) return n
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            ports: n.data.ports.map((p) =>
+              p.id === handleId ? { ...p, linkType: 'routed' as const, ipAddress: ip } : p,
+            ),
+            trunks: n.data.trunks.map((t) =>
+              t.id === handleId ? { ...t, linkType: 'routed' as const, ipAddress: ip } : t,
+            ),
+          },
+        }
+      }
+
+      withHistory(() =>
+        set((s) => ({
+          nodes: s.nodes.map((n) => {
+            if (n.id === edge.source) return apply(n, edge.sourceHandle, aIp)
+            if (n.id === edge.target) return apply(n, edge.targetHandle, bIp)
+            return n
+          }),
+        })),
+      )
+    },
 
     /* ── Merapikan tata letak ───────────────────────────────────────────── */
 

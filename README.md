@@ -95,6 +95,33 @@ Ukuran grid sendiri bisa diganti lewat menu **Grid** di toolbar: 8, 16
 Titik belok ikut tersimpan di file JSON. Auto-layout membuangnya karena posisi
 perangkat berubah — jumlah yang dibuang disebutkan di notifikasi.
 
+### Alamat IP (IPAM)
+
+Tombol **IP** di toolbar membuka rekap pengalamatan seluruh topologi:
+
+- **Daftar subnet** yang sedang dipakai, lengkap dengan rentang alamat,
+  kapasitas, dan interface mana saja yang menghuninya. Klik salah satu untuk
+  melompat ke perangkatnya di kanvas.
+- **Beri alamat otomatis** untuk link L3 yang kedua ujungnya bermode *routed*
+  tapi masih kosong. Tentukan blok induk (mis. `10.0.0.0/16`) dan ukuran per
+  link — `/30`, `/31` (RFC 3021), atau `/29` — lalu semua link yang menunggu
+  diisi sekaligus. Blok yang sudah terpakai dilewati, jadi pemberian alamat
+  aman diulang kapan saja. Bisa dibatalkan dengan `Cmd/Ctrl + Z`.
+- **Ekspor CSV** rencana pengalamatan, untuk lampiran dokumen atau diimpor ke
+  sistem lain.
+
+Masalah pengalamatan muncul di panel **Pemeriksaan** bersama temuan lain:
+
+| Diperiksa | Contoh |
+|---|---|
+| Tulisan alamat tidak sah | `10.0.0.999/30` |
+| Alamat jaringan atau broadcast dipakai host | `10.0.0.4/30` pada /30 |
+| Alamat sama dipakai dua interface | dua perangkat memakai `10.0.0.1` |
+| Dua ujung link beda subnet | `10.0.0.1/30` ↔ `10.0.0.9/30` |
+| Hanya satu ujung yang beralamat | sisi lawan masih kosong |
+| Blok tumpang tindih | `10.0.0.0/24` dan `10.0.0.128/25` |
+| Blok kelebihan penghuni | 3 interface di dalam satu `/30` |
+
 ### VLAN & mode interface
 
 > **Catatan istilah:** "Eth-Trunk" (bonding) dan "link-type trunk" (VLAN

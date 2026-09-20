@@ -5,6 +5,7 @@ import { AiDialog } from '@/components/AiDialog'
 import { Canvas } from '@/components/Canvas'
 import { DevicePalette } from '@/components/DevicePalette'
 import { HelpDialog } from '@/components/HelpDialog'
+import { IpamDialog } from '@/components/IpamDialog'
 import { Inspector } from '@/components/inspector/Inspector'
 import { ProjectsDialog } from '@/components/ProjectsDialog'
 import { Toasts } from '@/components/Toasts'
@@ -86,6 +87,7 @@ function Workspace() {
       <ProjectsDialog />
       <HelpDialog />
       <AiDialog />
+      <IpamDialog />
       <Toasts />
     </div>
   )

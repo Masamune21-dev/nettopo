@@ -12,6 +12,7 @@ import {
   Redo2,
   Save,
   Search,
+  Network,
   Sparkles,
   StickyNote,
   Sun,
@@ -380,6 +381,15 @@ export function Toolbar() {
         style={{ color: '#818cf8' }}
       >
         <Sparkles size={13} /> <span className="hidden xl:inline">AI</span>
+      </button>
+
+      <button
+        type="button"
+        className="btn"
+        onClick={() => ui.set('ipamOpen', true)}
+        title="Alamat IP: daftar subnet, pemberian alamat otomatis, ekspor rencana"
+      >
+        <Network size={13} /> <span className="hidden xl:inline">IP</span>
       </button>
 
       <Menu label="Tambah" icon={<Plus size={13} />}>
