@@ -16,7 +16,8 @@ const TIER: Record<DeviceRole, number> = {
   'access-switch': 4,
   olt: 4,
   server: 5,
-  cpe: 5,
+  passive: 5,
+  cpe: 6,
 }
 
 export type LayoutDirection = 'TB' | 'LR'

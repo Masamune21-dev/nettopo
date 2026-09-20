@@ -73,6 +73,7 @@ export const ROLES = [
   'olt',
   'internet',
   'cpe',
+  'passive',
 ] as const
 export type DeviceRole = (typeof ROLES)[number]
 
@@ -89,6 +90,7 @@ export const ROLE_LABEL: Record<DeviceRole, string> = {
   olt: 'OLT',
   internet: 'Internet / Upstream',
   cpe: 'CPE / Pelanggan',
+  passive: 'Pasif (ODP/ODC)',
 }
 
 /** Warna aksen per role — dipakai node, badge palette, dan minimap. */
@@ -105,6 +107,7 @@ export const ROLE_COLOR: Record<DeviceRole, string> = {
   olt: '#f97316',
   internet: '#3b82f6',
   cpe: '#94a3b8',
+  passive: '#78716c',
 }
 
 /** Warna kabel mengikuti kecepatan link. */

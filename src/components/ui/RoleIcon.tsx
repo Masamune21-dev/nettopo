@@ -1,5 +1,6 @@
 import {
   Cloud,
+  GitFork,
   MonitorSmartphone,
   Network,
   Router,
@@ -24,6 +25,7 @@ const MAP: Record<DeviceRole, ComponentType<{ size?: number; strokeWidth?: numbe
   olt: Split,
   internet: Cloud,
   cpe: MonitorSmartphone,
+  passive: GitFork,
 }
 
 export function RoleIcon({

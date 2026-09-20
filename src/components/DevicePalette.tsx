@@ -1,5 +1,5 @@
 import { useReactFlow } from '@xyflow/react'
-import { Search } from 'lucide-react'
+import { ChevronDown, ChevronRight, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { RoleIcon } from '@/components/ui/RoleIcon'
 import {
@@ -14,12 +14,27 @@ import { ROLE_COLOR, ROLE_LABEL } from '@/types/topology'
 
 export const DRAG_MIME = 'application/x-nettopo-model'
 
+const OPEN_KEY = 'nettopo:palette-open'
+
+/** Merek mana yang terbuka; tersimpan agar tidak perlu dibuka ulang tiap kali. */
+function readOpenVendors(): Vendor[] {
+  try {
+    const raw = localStorage.getItem(OPEN_KEY)
+    if (!raw) return ['juniper']
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) ? (parsed as Vendor[]) : ['juniper']
+  } catch {
+    return ['juniper']
+  }
+}
+
 function portSummary(m: DeviceModel): string {
   return m.ports.map((t) => `${t.count}× ${t.speed}`).join(' + ')
 }
 
 export function DevicePalette() {
   const [query, setQuery] = useState('')
+  const [openVendors, setOpenVendors] = useState<Vendor[]>(readOpenVendors)
   const addDevice = useTopologyStore((s) => s.addDevice)
   const { screenToFlowPosition } = useReactFlow()
 
@@ -40,6 +55,20 @@ export function DevicePalette() {
     }
     return out
   }, [query])
+
+  const searching = query.trim().length > 0
+
+  const toggleVendor = (vendor: Vendor) => {
+    setOpenVendors((prev) => {
+      const next = prev.includes(vendor) ? prev.filter((v) => v !== vendor) : [...prev, vendor]
+      try {
+        localStorage.setItem(OPEN_KEY, JSON.stringify(next))
+      } catch {
+        /* abaikan */
+      }
+      return next
+    })
+  }
 
   const addAtCenter = (modelId: string) => {
     const el = document.querySelector('.react-flow')
@@ -81,18 +110,27 @@ export function DevicePalette() {
           </p>
         ) : null}
 
-        {grouped.map(({ vendor, models }) => (
-          <section key={vendor} className="mb-3">
-            <h3
-              className="mb-1 flex items-center gap-1.5 px-1 text-[10px] font-bold uppercase tracking-wider"
+        {grouped.map(({ vendor, models }) => {
+          // Saat mencari, semua kelompok yang punya hasil dibuka otomatis.
+          const expanded = searching || openVendors.includes(vendor)
+          return (
+          <section key={vendor} className="mb-1.5">
+            <button
+              type="button"
+              onClick={() => toggleVendor(vendor)}
+              className="mb-1 flex w-full items-center gap-1.5 rounded px-1 py-1 text-[10px] font-bold uppercase tracking-wider hover:bg-black/5 dark:hover:bg-white/5"
               style={{ color: 'var(--muted)' }}
+              aria-expanded={expanded}
             >
+              {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
               <span
-                className="inline-block size-2 rounded-sm"
+                className="inline-block size-2 shrink-0 rounded-sm"
                 style={{ background: VENDOR_META[vendor].color }}
               />
-              {VENDOR_META[vendor].label}
-            </h3>
+              <span className="flex-1 text-left">{VENDOR_META[vendor].label}</span>
+              <span className="font-normal normal-case">{models.length}</span>
+            </button>
+            {expanded ? (
             <ul className="space-y-1">
               {models.map((m) => (
                 <li key={m.id}>
@@ -124,8 +162,10 @@ export function DevicePalette() {
                 </li>
               ))}
             </ul>
+            ) : null}
           </section>
-        ))}
+          )
+        })}
       </div>
     </aside>
   )

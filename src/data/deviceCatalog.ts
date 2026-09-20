@@ -11,7 +11,7 @@ import type { DeviceRole, Media, Speed } from '@/types/topology'
  * lewat tabel port di panel Inspector.
  */
 
-export type Vendor = 'juniper' | 'huawei' | 'mikrotik' | 'generic'
+export type Vendor = 'juniper' | 'huawei' | 'mikrotik' | 'zte' | 'cisco' | 'generic'
 
 export interface PortTemplate {
   /** Awalan nama interface, mis. "ge-0/0/", "sfp-sfpplus", "10GE1/0/" */
@@ -43,10 +43,19 @@ export const VENDOR_META: Record<Vendor, { label: string; color: string }> = {
   juniper: { label: 'Juniper', color: '#84b135' },
   huawei: { label: 'Huawei', color: '#e02020' },
   mikrotik: { label: 'MikroTik', color: '#f97316' },
+  zte: { label: 'ZTE', color: '#1e40af' },
+  cisco: { label: 'Cisco', color: '#0ea5e9' },
   generic: { label: 'Umum', color: '#64748b' },
 }
 
-export const VENDOR_ORDER: Vendor[] = ['juniper', 'huawei', 'mikrotik', 'generic']
+export const VENDOR_ORDER: Vendor[] = [
+  'juniper',
+  'huawei',
+  'mikrotik',
+  'zte',
+  'cisco',
+  'generic',
+]
 
 export const DEVICE_CATALOG: DeviceModel[] = [
   /* ── Juniper MX ────────────────────────────────────────────────────────── */
@@ -132,6 +141,83 @@ export const DEVICE_CATALOG: DeviceModel[] = [
     ],
   },
 
+  {
+    id: 'juniper-mx304',
+    vendor: 'juniper',
+    series: 'MX',
+    model: 'MX304',
+    role: 'core-router',
+    os: 'junos',
+    note: '4× QSFP56-DD 400G + 16× QSFP28 100G',
+    ports: [
+      { prefix: 'et-0/0/', count: 4, startIndex: 0, speed: '400G', media: 'qsfp-dd', group: 'QSFP-DD 400G' },
+      { prefix: 'et-0/1/', count: 16, startIndex: 0, speed: '100G', media: 'qsfp28', group: 'QSFP28 100G' },
+    ],
+  },
+  {
+    id: 'juniper-acx7100-32c',
+    vendor: 'juniper',
+    series: 'ACX',
+    model: 'ACX7100-32C',
+    role: 'metro-switch',
+    os: 'junos',
+    note: 'Metro/agregasi — 32× QSFP28 100G',
+    ports: [
+      { prefix: 'et-0/0/', count: 32, startIndex: 0, speed: '100G', media: 'qsfp28', group: 'QSFP28 100G' },
+    ],
+  },
+  {
+    id: 'juniper-qfx5120-48y',
+    vendor: 'juniper',
+    series: 'QFX',
+    model: 'QFX5120-48Y',
+    role: 'metro-switch',
+    os: 'junos',
+    note: '48× SFP28 25G + 8× QSFP28 100G',
+    ports: [
+      { prefix: 'xe-0/0/', count: 48, startIndex: 0, speed: '25G', media: 'sfp28', group: 'SFP28 25G' },
+      { prefix: 'et-0/0/', count: 8, startIndex: 48, speed: '100G', media: 'qsfp28', group: 'QSFP28 100G' },
+    ],
+  },
+  {
+    id: 'juniper-ex4600-40f',
+    vendor: 'juniper',
+    series: 'EX',
+    model: 'EX4600-40F',
+    role: 'metro-switch',
+    os: 'junos',
+    note: '24× SFP+ 10G + 4× QSFP+ 40G',
+    ports: [
+      { prefix: 'xe-0/0/', count: 24, startIndex: 0, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+      { prefix: 'et-0/0/', count: 4, startIndex: 24, speed: '40G', media: 'qsfp+', group: 'QSFP+ 40G' },
+    ],
+  },
+  {
+    id: 'juniper-ex4300-48t',
+    vendor: 'juniper',
+    series: 'EX',
+    model: 'EX4300-48T',
+    role: 'access-switch',
+    os: 'junos',
+    note: '48× GE RJ45 + 4× QSFP+ 40G',
+    ports: [
+      { prefix: 'ge-0/0/', count: 48, startIndex: 0, speed: '1G', media: 'rj45', group: 'GE RJ45' },
+      { prefix: 'et-0/1/', count: 4, startIndex: 0, speed: '40G', media: 'qsfp+', group: 'QSFP+ uplink' },
+    ],
+  },
+  {
+    id: 'juniper-srx4100',
+    vendor: 'juniper',
+    series: 'SRX',
+    model: 'SRX4100',
+    role: 'firewall',
+    os: 'junos',
+    note: '8× SFP+ 10G',
+    ports: [
+      { prefix: 'xe-0/0/', count: 8, startIndex: 0, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+    ],
+  },
+
   /* ── Huawei — akses / agregasi ─────────────────────────────────────────── */
   {
     id: 'huawei-s5731-s24t4x',
@@ -183,6 +269,99 @@ export const DEVICE_CATALOG: DeviceModel[] = [
     ports: [
       { prefix: 'XGE0/0/', count: 24, startIndex: 1, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
       { prefix: '40GE0/0/', count: 2, startIndex: 1, speed: '40G', media: 'qsfp+', group: 'QSFP+ 40G' },
+    ],
+  },
+
+  {
+    id: 'huawei-ne8000-m8',
+    vendor: 'huawei',
+    series: 'NE8000',
+    model: 'NE8000 M8',
+    role: 'bng',
+    os: 'vrp',
+    note: 'BNG — contoh 8× 100GE + 24× 10GE',
+    ports: [
+      { prefix: '100GE0/1/', count: 8, startIndex: 0, speed: '100G', media: 'qsfp28', group: '100GE' },
+      { prefix: '10GE0/2/', count: 24, startIndex: 0, speed: '10G', media: 'sfp+', group: '10GE' },
+    ],
+  },
+  {
+    id: 'huawei-ne40e-m2k',
+    vendor: 'huawei',
+    series: 'NE40E',
+    model: 'NE40E-M2K',
+    role: 'core-router',
+    os: 'vrp',
+    note: 'Contoh 4× 100GE + 20× 10GE',
+    ports: [
+      { prefix: '100GE0/1/', count: 4, startIndex: 0, speed: '100G', media: 'qsfp28', group: '100GE' },
+      { prefix: '10GE0/2/', count: 20, startIndex: 0, speed: '10G', media: 'sfp+', group: '10GE' },
+    ],
+  },
+  {
+    id: 'huawei-ce8850-64cq',
+    vendor: 'huawei',
+    series: 'CloudEngine',
+    model: 'CE8850-64CQ',
+    role: 'ssw',
+    os: 'vrp',
+    note: 'Spine — 64× QSFP28 100G',
+    ports: [
+      { prefix: '100GE1/0/', count: 64, startIndex: 1, speed: '100G', media: 'qsfp28', group: '100GE' },
+    ],
+  },
+  {
+    id: 'huawei-s5731-h48t4xc',
+    vendor: 'huawei',
+    series: 'S5700',
+    model: 'S5731-H48T4XC',
+    role: 'access-switch',
+    os: 'vrp',
+    note: '48× GE RJ45 + 4× SFP+ 10G',
+    ports: [
+      { prefix: 'GE0/0/', count: 48, startIndex: 1, speed: '1G', media: 'rj45', group: 'GE RJ45' },
+      { prefix: 'XGE0/0/', count: 4, startIndex: 1, speed: '10G', media: 'sfp+', group: 'Uplink SFP+' },
+    ],
+  },
+  {
+    id: 'huawei-s5720-52x-si',
+    vendor: 'huawei',
+    series: 'S5700',
+    model: 'S5720-52X-SI',
+    role: 'access-switch',
+    os: 'vrp',
+    note: '48× GE RJ45 + 4× SFP+ 10G',
+    ports: [
+      { prefix: 'GE0/0/', count: 48, startIndex: 1, speed: '1G', media: 'rj45', group: 'GE RJ45' },
+      { prefix: 'XGE0/0/', count: 4, startIndex: 1, speed: '10G', media: 'sfp+', group: 'Uplink SFP+' },
+    ],
+  },
+  {
+    id: 'huawei-ma5800-x7',
+    vendor: 'huawei',
+    series: 'MA5800',
+    model: 'MA5800-X7 (OLT)',
+    role: 'olt',
+    os: 'vrp',
+    note: 'OLT GPON — contoh 2 board 16 PON + uplink 10GE',
+    ports: [
+      { prefix: 'GPON0/1/', count: 16, startIndex: 0, speed: '2.5G', media: 'sfp', group: 'PON board 1' },
+      { prefix: 'GPON0/2/', count: 16, startIndex: 0, speed: '2.5G', media: 'sfp', group: 'PON board 2' },
+      { prefix: 'XGE0/9/', count: 4, startIndex: 0, speed: '10G', media: 'sfp+', group: 'Uplink' },
+    ],
+  },
+  {
+    id: 'huawei-ma5608t',
+    vendor: 'huawei',
+    series: 'MA5600',
+    model: 'MA5608T (OLT)',
+    role: 'olt',
+    os: 'vrp',
+    note: 'OLT GPON kecil — 16 PON + uplink 10GE',
+    ports: [
+      { prefix: 'GPON0/0/', count: 8, startIndex: 0, speed: '2.5G', media: 'sfp', group: 'PON slot 0' },
+      { prefix: 'GPON0/1/', count: 8, startIndex: 0, speed: '2.5G', media: 'sfp', group: 'PON slot 1' },
+      { prefix: 'XGE0/2/', count: 2, startIndex: 0, speed: '10G', media: 'sfp+', group: 'Uplink' },
     ],
   },
 
@@ -336,6 +515,83 @@ export const DEVICE_CATALOG: DeviceModel[] = [
     ],
   },
 
+  {
+    id: 'mikrotik-ccr2004-16g-2sp',
+    vendor: 'mikrotik',
+    series: 'CCR2004',
+    model: 'CCR2004-16G-2S+',
+    role: 'router',
+    os: 'routeros',
+    note: '16× GE + 2× SFP+ 10G',
+    ports: [
+      { prefix: 'ether', count: 16, startIndex: 1, speed: '1G', media: 'rj45', group: 'Ethernet' },
+      { prefix: 'sfp-sfpplus', count: 2, startIndex: 1, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+    ],
+  },
+  {
+    id: 'mikrotik-ccr1016-12g',
+    vendor: 'mikrotik',
+    series: 'CCR1016',
+    model: 'CCR1016-12G',
+    role: 'router',
+    os: 'routeros',
+    note: '12× GE',
+    ports: [{ prefix: 'ether', count: 12, startIndex: 1, speed: '1G', media: 'rj45', group: 'Ethernet' }],
+  },
+  {
+    id: 'mikrotik-rb5009',
+    vendor: 'mikrotik',
+    series: 'RB5009',
+    model: 'RB5009UG+S+',
+    role: 'router',
+    os: 'routeros',
+    note: '7× GE + 1× 2.5G + 1× SFP+ 10G',
+    ports: [
+      { prefix: 'ether', count: 7, startIndex: 1, speed: '1G', media: 'rj45', group: 'Ethernet' },
+      { prefix: 'ether', count: 1, startIndex: 8, speed: '2.5G', media: 'rj45', group: '2.5G' },
+      { prefix: 'sfp-sfpplus', count: 1, startIndex: 1, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+    ],
+  },
+  {
+    id: 'mikrotik-l009',
+    vendor: 'mikrotik',
+    series: 'L009',
+    model: 'L009UiGS-RM',
+    role: 'router',
+    os: 'routeros',
+    note: '8× GE + 1× SFP 1G',
+    ports: [
+      { prefix: 'ether', count: 8, startIndex: 1, speed: '1G', media: 'rj45', group: 'Ethernet' },
+      { prefix: 'sfp', count: 1, startIndex: 1, speed: '1G', media: 'sfp', group: 'SFP' },
+    ],
+  },
+  {
+    id: 'mikrotik-crs312-4cp-8xg',
+    vendor: 'mikrotik',
+    series: 'CRS312',
+    model: 'CRS312-4C+8XG',
+    role: 'switch',
+    os: 'routeros',
+    note: '8× 10G RJ45 + 4× combo 10G',
+    ports: [
+      { prefix: 'ether', count: 8, startIndex: 1, speed: '10G', media: 'rj45', group: '10G RJ45' },
+      { prefix: 'combo', count: 4, startIndex: 1, speed: '10G', media: 'combo', group: 'Combo 10G' },
+    ],
+  },
+  {
+    id: 'mikrotik-crs328-24p-4sp',
+    vendor: 'mikrotik',
+    series: 'CRS328',
+    model: 'CRS328-24P-4S+',
+    role: 'access-switch',
+    os: 'routeros',
+    note: '24× GE PoE + 4× SFP+ 10G',
+    ports: [
+      { prefix: 'ether', count: 24, startIndex: 1, speed: '1G', media: 'rj45', group: 'GE PoE' },
+      { prefix: 'sfp-sfpplus', count: 4, startIndex: 1, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+    ],
+  },
+
   /* ── MikroTik CRS ──────────────────────────────────────────────────────── */
   {
     id: 'mikrotik-crs305-1g-4sp',
@@ -418,6 +674,91 @@ export const DEVICE_CATALOG: DeviceModel[] = [
     ],
   },
 
+  /* ── ZTE ───────────────────────────────────────────────────────────────── */
+  {
+    id: 'zte-c320',
+    vendor: 'zte',
+    series: 'ZXA10',
+    model: 'C320 (OLT)',
+    role: 'olt',
+    os: 'other',
+    note: 'OLT GPON 2 slot — contoh 16 PON + uplink 10GE',
+    ports: [
+      { prefix: 'gpon-olt_1/1/', count: 8, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'PON slot 1' },
+      { prefix: 'gpon-olt_1/2/', count: 8, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'PON slot 2' },
+      { prefix: 'xgei_1/3/', count: 2, startIndex: 1, speed: '10G', media: 'sfp+', group: 'Uplink 10GE' },
+      { prefix: 'gei_1/3/', count: 4, startIndex: 3, speed: '1G', media: 'sfp', group: 'Uplink GE' },
+    ],
+  },
+  {
+    id: 'zte-c600',
+    vendor: 'zte',
+    series: 'ZXA10',
+    model: 'C600 (OLT)',
+    role: 'olt',
+    os: 'other',
+    note: 'OLT besar — contoh 32 PON + uplink 100GE',
+    ports: [
+      { prefix: 'gpon-olt_1/1/', count: 16, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'PON slot 1' },
+      { prefix: 'gpon-olt_1/2/', count: 16, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'PON slot 2' },
+      { prefix: 'cei_1/9/', count: 4, startIndex: 1, speed: '100G', media: 'qsfp28', group: 'Uplink 100GE' },
+    ],
+  },
+  {
+    id: 'zte-zxr10-5960',
+    vendor: 'zte',
+    series: 'ZXR10',
+    model: 'ZXR10 5960-56DM',
+    role: 'metro-switch',
+    os: 'other',
+    note: '48× SFP+ 10G + 6× QSFP28 100G',
+    ports: [
+      { prefix: 'xgei-0/1/1/', count: 48, startIndex: 1, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+      { prefix: 'cei-0/1/1/', count: 6, startIndex: 49, speed: '100G', media: 'qsfp28', group: 'QSFP28 100G' },
+    ],
+  },
+
+  /* ── Cisco ─────────────────────────────────────────────────────────────── */
+  {
+    id: 'cisco-asr920-24sz-m',
+    vendor: 'cisco',
+    series: 'ASR920',
+    model: 'ASR920-24SZ-M',
+    role: 'metro-switch',
+    os: 'other',
+    note: 'Metro — 24× SFP 1G + 4× SFP+ 10G',
+    ports: [
+      { prefix: 'GigabitEthernet0/0/', count: 24, startIndex: 1, speed: '1G', media: 'sfp', group: 'GE SFP' },
+      { prefix: 'TenGigabitEthernet0/0/', count: 4, startIndex: 25, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+    ],
+  },
+  {
+    id: 'cisco-asr1001-x',
+    vendor: 'cisco',
+    series: 'ASR1000',
+    model: 'ASR1001-X',
+    role: 'router',
+    os: 'other',
+    note: '6× GE + 2× SFP+ 10G',
+    ports: [
+      { prefix: 'GigabitEthernet0/0/', count: 6, startIndex: 0, speed: '1G', media: 'sfp', group: 'GE' },
+      { prefix: 'TenGigabitEthernet0/0/', count: 2, startIndex: 6, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
+    ],
+  },
+  {
+    id: 'cisco-c9300-48p',
+    vendor: 'cisco',
+    series: 'Catalyst',
+    model: 'Catalyst C9300-48P',
+    role: 'access-switch',
+    os: 'other',
+    note: '48× GE PoE + uplink modul 10G',
+    ports: [
+      { prefix: 'GigabitEthernet1/0/', count: 48, startIndex: 1, speed: '1G', media: 'rj45', group: 'GE PoE' },
+      { prefix: 'TenGigabitEthernet1/1/', count: 4, startIndex: 1, speed: '10G', media: 'sfp+', group: 'Uplink' },
+    ],
+  },
+
   /* ── Umum / generik ────────────────────────────────────────────────────── */
   {
     id: 'generic-internet',
@@ -475,6 +816,81 @@ export const DEVICE_CATALOG: DeviceModel[] = [
     ports: [
       { prefix: 'uplink', count: 4, startIndex: 1, speed: '10G', media: 'sfp+', group: 'Uplink' },
       { prefix: 'pon', count: 8, startIndex: 1, speed: '1G', media: 'sfp', group: 'PON' },
+    ],
+  },
+  {
+    id: 'generic-odc',
+    vendor: 'generic',
+    series: 'Pasif',
+    model: 'ODC (Kabinet)',
+    role: 'passive',
+    os: 'other',
+    note: 'Titik distribusi kabel optik',
+    ports: [
+      { prefix: 'in', count: 2, startIndex: 1, speed: '1G', media: 'sfp', group: 'Feeder' },
+      { prefix: 'out', count: 12, startIndex: 1, speed: '1G', media: 'sfp', group: 'Distribusi' },
+    ],
+  },
+  {
+    id: 'generic-odp',
+    vendor: 'generic',
+    series: 'Pasif',
+    model: 'ODP (Tiang)',
+    role: 'passive',
+    os: 'other',
+    note: 'Titik terminasi ke pelanggan',
+    ports: [
+      { prefix: 'in', count: 1, startIndex: 1, speed: '1G', media: 'sfp', group: 'Masuk' },
+      { prefix: 'drop', count: 8, startIndex: 1, speed: '1G', media: 'sfp', group: 'Drop core' },
+    ],
+  },
+  {
+    id: 'generic-splitter',
+    vendor: 'generic',
+    series: 'Pasif',
+    model: 'Splitter 1:8',
+    role: 'passive',
+    os: 'other',
+    note: 'Pembagi daya optik',
+    ports: [
+      { prefix: 'in', count: 1, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'Masuk' },
+      { prefix: 'out', count: 8, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'Keluar' },
+    ],
+  },
+  {
+    id: 'generic-ont',
+    vendor: 'generic',
+    series: 'Umum',
+    model: 'ONT / ONU',
+    role: 'cpe',
+    os: 'other',
+    note: 'Perangkat pelanggan FTTH',
+    ports: [
+      { prefix: 'pon', count: 1, startIndex: 1, speed: '2.5G', media: 'sfp', group: 'PON' },
+      { prefix: 'lan', count: 4, startIndex: 1, speed: '1G', media: 'rj45', group: 'LAN' },
+    ],
+  },
+  {
+    id: 'generic-ap',
+    vendor: 'generic',
+    series: 'Umum',
+    model: 'Access Point',
+    role: 'cpe',
+    os: 'other',
+    note: 'Titik akses nirkabel',
+    ports: [{ prefix: 'eth', count: 1, startIndex: 1, speed: '2.5G', media: 'rj45', group: 'Uplink' }],
+  },
+  {
+    id: 'generic-media-converter',
+    vendor: 'generic',
+    series: 'Umum',
+    model: 'Media Converter',
+    role: 'cpe',
+    os: 'other',
+    note: 'Konverter fiber ke tembaga',
+    ports: [
+      { prefix: 'sfp', count: 1, startIndex: 1, speed: '1G', media: 'sfp', group: 'Fiber' },
+      { prefix: 'eth', count: 1, startIndex: 1, speed: '1G', media: 'rj45', group: 'Tembaga' },
     ],
   },
   {
