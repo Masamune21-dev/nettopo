@@ -52,9 +52,9 @@ function Menu({
 
   return (
     <div className="relative" ref={ref}>
-      <button type="button" className="btn" onClick={() => setOpen((v) => !v)}>
+      <button type="button" className="btn" onClick={() => setOpen((v) => !v)} title={label}>
         {icon}
-        {label}
+        <span className="hidden xl:inline">{label}</span>
         <ChevronDown size={12} />
       </button>
       {open ? (
@@ -112,7 +112,7 @@ function DeviceSearch() {
   }
 
   return (
-    <div className="relative w-52">
+    <div className="relative w-52 min-w-[150px] shrink">
       <Search
         size={13}
         className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2"
@@ -201,19 +201,19 @@ export function Toolbar() {
       className="flex h-[52px] shrink-0 items-center gap-1.5 border-b px-3"
       style={{ background: 'var(--panel)', borderColor: 'var(--border)' }}
     >
-      <div className="mr-1 flex items-center gap-2">
+      <div className="mr-1 flex min-w-0 shrink items-center gap-2">
         <span
           className="flex size-7 items-center justify-center rounded-md text-[13px] font-black text-white"
           style={{ background: '#4f46e5' }}
         >
           N
         </span>
-        <div className="leading-none">
-          <div className="text-[13px] font-semibold">
+        <div className="min-w-0 leading-none">
+          <div className="truncate text-[13px] font-semibold">
             {store.projectName}
             {store.dirty ? <span style={{ color: '#f59e0b' }}> •</span> : null}
           </div>
-          <div className="text-[10px]" style={{ color: 'var(--muted)' }}>
+          <div className="truncate text-[10px]" style={{ color: 'var(--muted)' }}>
             {store.nodes.filter(isDeviceNode).length} perangkat · {store.edges.length} link
           </div>
         </div>
@@ -222,15 +222,15 @@ export function Toolbar() {
       <span className="mx-1 h-6 w-px" style={{ background: 'var(--border)' }} />
 
       <button type="button" className="btn" onClick={doSave} title="Simpan (Cmd/Ctrl+S)">
-        <Save size={13} /> Simpan
+        <Save size={13} /> <span className="hidden xl:inline">Simpan</span>
       </button>
 
       <button type="button" className="btn" onClick={() => ui.set('projectsOpen', true)} title="Daftar topologi tersimpan">
-        <FolderOpen size={13} /> Buka
+        <FolderOpen size={13} /> <span className="hidden xl:inline">Buka</span>
       </button>
 
       <button type="button" className="btn" onClick={() => fileRef.current?.click()} title="Impor file JSON">
-        <Upload size={13} /> Impor
+        <Upload size={13} /> <span className="hidden xl:inline">Impor</span>
       </button>
       <input
         ref={fileRef}

@@ -108,8 +108,7 @@ export function PortTable({ device }: { device: DeviceNode }) {
 
               <div className="mt-1 flex items-center gap-1">
                 <select
-                  className="field shrink-0 px-1 py-0.5 text-[10.5px]"
-                  style={{ width: 66 }}
+                  className="field w-[66px] shrink-0 px-1 py-0.5 text-[10.5px]"
                   value={p.speed}
                   aria-label="Kecepatan port"
                   onChange={(e) => updatePort(device.id, p.id, { speed: e.target.value as typeof p.speed })}
@@ -121,8 +120,7 @@ export function PortTable({ device }: { device: DeviceNode }) {
                   ))}
                 </select>
                 <select
-                  className="field shrink-0 px-1 py-0.5 text-[10.5px]"
-                  style={{ width: 74 }}
+                  className="field w-[74px] shrink-0 px-1 py-0.5 text-[10.5px]"
                   value={p.media}
                   aria-label="Media port"
                   onChange={(e) => updatePort(device.id, p.id, { media: e.target.value as typeof p.media })}

@@ -46,73 +46,78 @@ body {
 }
 
 /* ── Utility tipis supaya markup komponen tetap ringkas ─────────────────── */
+/* Ditempatkan di layer `components` agar utility Tailwind (pl-7, px-1, w-…)
+   selalu bisa menimpanya — tanpa ini padding & lebar bawaan di sini menang
+   hanya karena urutan file, dan teks jadi tertutup ikon. */
 
-.panel {
-  background: var(--panel);
-  border-color: var(--border);
-}
+@layer components {
+  .panel {
+    background: var(--panel);
+    border-color: var(--border);
+  }
 
-.field {
-  width: 100%;
-  border-radius: 0.375rem;
-  border: 1px solid var(--border);
-  background: var(--panel-2);
-  color: var(--text);
-  padding: 0.3rem 0.5rem;
-  font-size: 0.8125rem;
-  outline: none;
-}
+  .field {
+    width: 100%;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8125rem;
+    outline: none;
+  }
 
-.field:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 2px rgb(99 102 241 / 0.18);
-}
+  .field:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgb(99 102 241 / 0.18);
+  }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  border-radius: 0.375rem;
-  border: 1px solid var(--border);
-  background: var(--panel);
-  color: var(--text);
-  padding: 0.3rem 0.6rem;
-  font-size: 0.8125rem;
-  line-height: 1.25rem;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.12s ease, border-color 0.12s ease;
-}
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s ease, border-color 0.12s ease;
+  }
 
-.btn:hover:not(:disabled) {
-  background: var(--panel-2);
-  border-color: #94a3b8;
-}
+  .btn:hover:not(:disabled) {
+    background: var(--panel-2);
+    border-color: #94a3b8;
+  }
 
-.btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 
-.btn-primary {
-  background: #4f46e5;
-  border-color: #4f46e5;
-  color: #fff;
-}
+  .btn-primary {
+    background: #4f46e5;
+    border-color: #4f46e5;
+    color: #fff;
+  }
 
-.btn-primary:hover:not(:disabled) {
-  background: #4338ca;
-  border-color: #4338ca;
-}
+  .btn-primary:hover:not(:disabled) {
+    background: #4338ca;
+    border-color: #4338ca;
+  }
 
-.label {
-  display: block;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 0.25rem;
+  .label {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.25rem;
+  }
 }
 
 /* ── React Flow ─────────────────────────────────────────────────────────── */
