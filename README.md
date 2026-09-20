@@ -1,5 +1,7 @@
 # NetTopo — Editor Topologi Jaringan
 
+[![Lisensi: MIT](https://img.shields.io/badge/Lisensi-MIT-blue.svg)](LICENSE)
+
 Aplikasi web untuk menggambar topologi jaringan sampai level **port-ke-port**,
 dengan katalog perangkat yang sesuai jaringan ISP di Indonesia: **Juniper MX,
 switch & SSW Huawei, MikroTik CRS dan CCR**.
@@ -490,3 +492,24 @@ src/
 
 Struktur data sekarang sudah disiapkan untuk itu: tinggal menambah backend yang
 mengirim status per `deviceId`/`linkId`, tanpa mengubah format file.
+
+---
+
+## Lisensi
+
+[MIT](LICENSE) — bebas dipakai, diubah, dan didistribusikan, termasuk untuk
+keperluan komersial. Yang diminta hanya satu: sertakan pemberitahuan hak cipta
+dan teks lisensinya. Perangkat lunak ini diberikan apa adanya, tanpa jaminan.
+
+Seluruh dependensinya berlisensi permisif dan tidak bertentangan: MIT
+(React, React Flow, dagre, zustand, zod, Tailwind, Vite, Vitest, html-to-image),
+ISC (lucide-react), dan Apache-2.0 (TypeScript).
+
+### Catatan merek dagang
+
+Nama vendor dan model perangkat di dalam katalog — Juniper, Huawei, MikroTik,
+ZTE, Cisco, Ubiquiti, TP-Link, FiberHome, BDCOM, V-SOL, C-Data, HTB — adalah
+merek dagang milik pemiliknya masing-masing, dipakai di sini semata sebagai
+acuan agar dokumentasi jaringan Anda sesuai perangkat yang nyata. Proyek ini
+tidak berafiliasi dengan, tidak didukung oleh, dan tidak disponsori oleh
+perusahaan mana pun di atas.
