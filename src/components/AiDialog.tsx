@@ -62,7 +62,11 @@ function NotConfigured() {
 export function AiDialog() {
   const open = useUiStore((s) => s.aiOpen)
   const setUi = useUiStore((s) => s.set)
-  const store = useTopologyStore()
+  // Hanya angka ringkasan yang dipakai untuk render; isi lengkap store diambil
+  // saat tombol ditekan, supaya dialog tidak ikut render di tiap frame drag.
+  const deviceCount = useTopologyStore((s) => s.nodes.filter(isDeviceNode).length)
+  const linkCount = useTopologyStore((s) => s.edges.length)
+  const projectName = useTopologyStore((s) => s.projectName)
   const { fitView } = useReactFlow()
 
   const [taskId, setTaskId] = useState<TaskId>('audit')
@@ -114,9 +118,6 @@ export function AiDialog() {
     setUi('aiOpen', false)
   }
 
-  const deviceCount = store.nodes.filter(isDeviceNode).length
-  const meta = { projectId: store.projectId, projectName: store.projectName, site: store.site }
-
   const run = async () => {
     if (!model) {
       setError('Pilih model dulu.')
@@ -138,6 +139,8 @@ export function AiDialog() {
     abort.current = new AbortController()
 
     try {
+      const store = useTopologyStore.getState()
+      const meta = { projectId: store.projectId, projectName: store.projectName, site: store.site }
       const topo = toTopology(meta, store.nodes, store.edges)
       const answer = await chat({
         model,
@@ -233,7 +236,7 @@ export function AiDialog() {
           </div>
           <p className="text-[11px]" style={{ color: 'var(--muted)' }}>
             {task.blurb}
-            {task.needsTopology ? ` · memakai ${deviceCount} perangkat & ${store.edges.length} link yang ada` : ''}
+            {task.needsTopology ? ` · memakai ${deviceCount} perangkat & ${linkCount} link yang ada` : ''}
           </p>
 
           {/* Model */}
@@ -304,7 +307,7 @@ export function AiDialog() {
                   type="button"
                   className="btn"
                   onClick={() =>
-                    downloadText(result, `${slugify(store.projectName)}-${taskId}.md`, 'text/markdown')
+                    downloadText(result, `${slugify(projectName)}-${taskId}.md`, 'text/markdown')
                   }
                 >
                   <Download size={13} /> Unduh
