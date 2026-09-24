@@ -9,7 +9,12 @@
  * aliran — jawaban model yang panjang mulai tampil dalam hitungan detik, tidak
  * menunggu seluruhnya selesai lebih dulu.
  */
-import { AI_MAX_BODY_BYTES, checkAiRequest } from '../../src/lib/aiGuard'
+import {
+  AI_ACCESS_HEADER,
+  AI_MAX_BODY_BYTES,
+  AI_REASON_HEADER,
+  checkAiRequest,
+} from '../../src/lib/aiGuard'
 
 export const config = { runtime: 'edge' }
 
@@ -41,11 +46,13 @@ export default async function handler(request: Request): Promise<Response> {
     secFetchSite: request.headers.get('sec-fetch-site'),
     contentType: request.headers.get('content-type'),
     contentLength: request.headers.get('content-length'),
+    accessCode: process.env.AI_ACCESS_CODE ?? '',
+    providedCode: request.headers.get(AI_ACCESS_HEADER),
   })
   if (rejection) {
     return new Response(JSON.stringify({ error: rejection.error }), {
       status: rejection.status,
-      headers: JSON_HEADERS,
+      headers: { ...JSON_HEADERS, ...(rejection.reason ? { [AI_REASON_HEADER]: rejection.reason } : {}) },
     })
   }
 

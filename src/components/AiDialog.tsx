@@ -2,7 +2,18 @@ import { useReactFlow } from '@xyflow/react'
 import { AlertTriangle, Copy, Download, RefreshCw, Sparkles, StopCircle } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Dialog } from '@/components/Dialog'
-import { aiDefaultModel, aiReady, AiError, chat, extractJson, listModels, type AiModel } from '@/lib/ai'
+import {
+  aiDefaultModel,
+  aiNeedsCode,
+  aiReady,
+  AiError,
+  chat,
+  extractJson,
+  getAccessCode,
+  listModels,
+  setAccessCode,
+  type AiModel,
+} from '@/lib/ai'
 import { applyBuildPlan, applyTidyPlan } from '@/lib/aiApply'
 import { AI_TASKS, buildPlanSchema, getTask, type TaskId, tidyPlanSchema } from '@/lib/aiTasks'
 import { downloadText, slugify } from '@/lib/download'
@@ -73,6 +84,7 @@ export function AiDialog() {
   const [instruction, setInstruction] = useState('')
   const [models, setModels] = useState<AiModel[]>([])
   const [model, setModel] = useState('')
+  const [code, setCode] = useState(getAccessCode)
   const [loadingModels, setLoadingModels] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -238,6 +250,36 @@ export function AiDialog() {
             {task.blurb}
             {task.needsTopology ? ` · memakai ${deviceCount} perangkat & ${linkCount} link yang ada` : ''}
           </p>
+
+          {/* Kode akses — hanya kalau server mengatur AI_ACCESS_CODE */}
+          {aiNeedsCode() ? (
+            <form
+              className="flex items-end gap-1.5"
+              onSubmit={(e) => {
+                e.preventDefault()
+                setAccessCode(code.trim())
+                void refreshModels()
+              }}
+            >
+              <div className="min-w-0 flex-1">
+                <label className="label" htmlFor="ai-access">
+                  Kode akses
+                </label>
+                <input
+                  id="ai-access"
+                  type="password"
+                  className="field"
+                  autoComplete="off"
+                  placeholder="Diberikan oleh pengelola aplikasi ini"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                />
+              </div>
+              <button type="submit" className="btn px-2 py-1 text-[11.5px]">
+                Simpan
+              </button>
+            </form>
+          ) : null}
 
           {/* Model */}
           <div className="flex items-end gap-1.5">

@@ -7,14 +7,20 @@
  * Yang diizinkan hanya dua panggilan yang memang dipakai aplikasi, dan hanya
  * dari halaman aplikasi itu sendiri.
  *
- * Catatan: ini menutup penyalahgunaan lewat browser (situs lain) dan endpoint
- * provider selain chat. Orang yang memanggil langsung dengan curl masih bisa
- * memalsukan header Origin — untuk deploy publik, lindungi juga dengan Vercel
- * Deployment Protection atau batasi kuota kunci di sisi provider.
+ * Pemeriksaan asal (Origin) menutup penyalahgunaan lewat browser, tetapi orang
+ * yang memanggil langsung dengan curl bisa memalsukannya. Untuk deploy publik,
+ * isi AI_ACCESS_CODE: setiap permintaan lalu wajib membawa kode itu di header
+ * AI_ACCESS_HEADER, dan pengguna mengisinya sekali di dialog AI.
  */
 
 /** Pasangan method + jalur (setelah awalan /ai dibuang) yang boleh diteruskan. */
 export const AI_ROUTES: ReadonlySet<string> = new Set(['GET /models', 'POST /chat/completions'])
+
+/** Header tempat browser mengirim kode akses. */
+export const AI_ACCESS_HEADER = 'x-nettopo-access'
+
+/** Header balasan yang menandai penolakan karena kode akses, bukan kunci API. */
+export const AI_REASON_HEADER = 'x-nettopo-reason'
 
 /** Batas ukuran badan permintaan; konteks topologi besar pun jauh di bawah ini. */
 export const AI_MAX_BODY_BYTES = 2_000_000
@@ -29,11 +35,24 @@ export interface AiRequestInfo {
   secFetchSite?: string | null
   contentType?: string | null
   contentLength?: string | null
+  /** Kode akses yang diwajibkan server (AI_ACCESS_CODE); kosong = tidak wajib. */
+  accessCode?: string
+  /** Isi header AI_ACCESS_HEADER dari permintaan. */
+  providedCode?: string | null
+}
+
+/** Bandingkan dua string tanpa berhenti di karakter pertama yang beda. */
+function sameCode(a: string, b: string): boolean {
+  let diff = a.length ^ b.length
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i % (b.length || 1))
+  return diff === 0
 }
 
 export interface AiRejection {
   status: number
   error: string
+  /** 'access-code' kalau ditolak karena kode akses. */
+  reason?: string
 }
 
 /** Kembalikan alasan penolakan, atau null kalau permintaan boleh diteruskan. */
@@ -57,6 +76,14 @@ export function checkAiRequest(req: AiRequestInfo): AiRejection | null {
     }
     if (originHost !== req.host) {
       return { status: 403, error: 'Permintaan dari situs lain ditolak.' }
+    }
+  }
+
+  if (req.accessCode && !sameCode(req.accessCode, req.providedCode ?? '')) {
+    return {
+      status: 401,
+      error: 'Kode akses asisten AI salah atau belum diisi.',
+      reason: 'access-code',
     }
   }
 

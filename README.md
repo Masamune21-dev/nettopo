@@ -426,13 +426,14 @@ Hasil build berupa berkas statis, jadi deploy-nya sederhana: hubungkan repo ini
 di dashboard Vercel, biarkan semua pengaturan bawaan (Vercel mengenali Vite
 sendiri), lalu **Deploy**.
 
-Agar asisten AI ikut hidup, isi dua Environment Variables di Vercel —
+Agar asisten AI ikut hidup, isi Environment Variables berikut di Vercel —
 Settings → Environment Variables:
 
 | Nama | Isi |
 |---|---|
 | `AI_BASE_URL` | alamat endpoint kompatibel OpenAI, mis. `https://endpoint-anda.example/v1` |
 | `AI_API_KEY` | kunci API dari penyedia endpoint itu |
+| `AI_ACCESS_CODE` | *(disarankan untuk deploy publik)* kode akses bebas pilih, mis. kalimat acak panjang |
 
 Keduanya **tanpa awalan `VITE_`**, dan itu disengaja: variabel berawalan
 `VITE_` ikut masuk ke berkas JavaScript yang diunduh browser. Tanpa awalan itu,
@@ -449,12 +450,17 @@ Penerus itu hanya meneruskan dua panggilan yang dipakai aplikasi
 sendiri, dan menolak badan permintaan di atas 2 MB — aturannya ada di
 [`src/lib/aiGuard.ts`](src/lib/aiGuard.ts), dipakai juga oleh dev server.
 
-> **Penting untuk deploy publik:** siapa pun yang membuka alamat deploy Anda
-> bisa memakai asisten AI dengan kunci Anda, dan orang yang memanggil
-> langsung (mis. lewat `curl`) bisa memalsukan asal permintaannya. Kalau
-> aplikasi bukan untuk umum, aktifkan **Vercel Deployment Protection**
-> (Settings → Deployment Protection), dan pasang batas kuota atau anggaran
-> pada kunci di sisi penyedia.
+> **Penting untuk deploy publik:** tanpa `AI_ACCESS_CODE`, siapa pun yang
+> membuka alamat deploy Anda bisa memakai asisten AI dengan kunci Anda — dan
+> pemeriksaan asal permintaan bisa dipalsukan dari `curl`. Dengan
+> `AI_ACCESS_CODE` terisi, penerus menolak setiap permintaan yang tidak
+> membawa kode itu. Pengguna mengisinya sekali di kolom **Kode akses** pada
+> dialog AI; kodenya tersimpan di browser masing-masing dan tidak diteruskan
+> ke penyedia AI. Bagikan kode hanya ke orang yang boleh memakai AI, dan ganti
+> nilainya (lalu deploy ulang) kalau bocor.
+>
+> Tetap pasang batas kuota atau anggaran pada kunci di sisi penyedia sebagai
+> pengaman terakhir.
 
 Sudah diuji: dengan kedua variabel terisi, aplikasi hasil build mengenali AI
 sebagai siap pakai, dan nilai kuncinya tidak ada di dalam bundle.
