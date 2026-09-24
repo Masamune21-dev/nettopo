@@ -9,6 +9,8 @@
  * aliran — jawaban model yang panjang mulai tampil dalam hitungan detik, tidak
  * menunggu seluruhnya selesai lebih dulu.
  */
+import { AI_MAX_BODY_BYTES, checkAiRequest } from '../../src/lib/aiGuard'
+
 export const config = { runtime: 'edge' }
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
@@ -31,14 +33,30 @@ export default async function handler(request: Request): Promise<Response> {
   const url = new URL(request.url)
   // Terima /ai/... maupun /api/ai/... — keduanya menunjuk fungsi yang sama.
   const path = url.pathname.replace(/^\/(?:api\/)?ai/, '')
-  if (!path.startsWith('/')) {
-    return new Response(JSON.stringify({ error: 'Jalur tidak dikenal.' }), {
-      status: 404,
+  const rejection = checkAiRequest({
+    method: request.method,
+    path,
+    host: request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? url.host,
+    origin: request.headers.get('origin'),
+    secFetchSite: request.headers.get('sec-fetch-site'),
+    contentType: request.headers.get('content-type'),
+    contentLength: request.headers.get('content-length'),
+  })
+  if (rejection) {
+    return new Response(JSON.stringify({ error: rejection.error }), {
+      status: rejection.status,
       headers: JSON_HEADERS,
     })
   }
 
-  const hasBody = request.method !== 'GET' && request.method !== 'HEAD'
+  const body = request.method === 'POST' ? await request.text() : undefined
+  // Content-Length bisa tidak ada (chunked), jadi ukuran asli dicek lagi.
+  if (body && body.length > AI_MAX_BODY_BYTES) {
+    return new Response(JSON.stringify({ error: 'Permintaan terlalu besar.' }), {
+      status: 413,
+      headers: JSON_HEADERS,
+    })
+  }
 
   try {
     const upstream = await fetch(`${baseUrl}${path}${url.search}`, {
@@ -48,7 +66,7 @@ export default async function handler(request: Request): Promise<Response> {
         Authorization: `Bearer ${apiKey}`,
         Accept: request.headers.get('accept') ?? '*/*',
       },
-      body: hasBody ? await request.text() : undefined,
+      body,
     })
 
     // Badan balasan diteruskan sebagai aliran, bukan ditunggu selesai dulu.

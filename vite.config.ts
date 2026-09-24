@@ -1,7 +1,42 @@
 import { fileURLToPath, URL } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
+import { checkAiRequest } from './src/lib/aiGuard.ts'
+
+/**
+ * Terapkan aturan akses /ai sebelum proxy di bawah menempelkan kunci API —
+ * tanpa ini, situs lain yang dibuka di browser yang sama (atau siapa pun di
+ * jaringan saat memakai --host) bisa menumpang kunci lewat dev server.
+ */
+function aiGuard(): Plugin {
+  return {
+    name: 'nettopo-ai-guard',
+    configureServer(server) {
+      // Didaftarkan langsung (bukan lewat fungsi kembalian) supaya berjalan
+      // sebelum middleware proxy bawaan Vite.
+      server.middlewares.use('/ai', (req, res, next) => {
+        const header = (name: string) => {
+          const v = req.headers[name]
+          return Array.isArray(v) ? v[0] : (v ?? null)
+        }
+        const rejection = checkAiRequest({
+          method: req.method ?? 'GET',
+          path: (req.url ?? '').split('?')[0],
+          host: header('host'),
+          origin: header('origin'),
+          secFetchSite: header('sec-fetch-site'),
+          contentType: header('content-type'),
+          contentLength: header('content-length'),
+        })
+        if (!rejection) return next()
+        res.statusCode = rejection.status
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ error: rejection.error }))
+      })
+    },
+  }
+}
 
 export default defineConfig(({ mode }) => {
   // Awalan kosong: baca semua variabel dari .env, bukan hanya yang VITE_*.
@@ -12,7 +47,7 @@ export default defineConfig(({ mode }) => {
   const apiKey = env.AI_API_KEY ?? ''
 
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [aiGuard(), react(), tailwindcss()],
     resolve: {
       alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
     },

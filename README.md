@@ -444,6 +444,18 @@ sisi server — persis seperti yang dilakukan dev server saat pengembangan.
 Fungsi itu berjalan di Edge runtime dan meneruskan balasan sebagai aliran,
 sehingga jawaban panjang mulai tampil dalam hitungan detik.
 
+Penerus itu hanya meneruskan dua panggilan yang dipakai aplikasi
+(`GET /models` dan `POST /chat/completions`), hanya dari halaman aplikasi itu
+sendiri, dan menolak badan permintaan di atas 2 MB — aturannya ada di
+[`src/lib/aiGuard.ts`](src/lib/aiGuard.ts), dipakai juga oleh dev server.
+
+> **Penting untuk deploy publik:** siapa pun yang membuka alamat deploy Anda
+> bisa memakai asisten AI dengan kunci Anda, dan orang yang memanggil
+> langsung (mis. lewat `curl`) bisa memalsukan asal permintaannya. Kalau
+> aplikasi bukan untuk umum, aktifkan **Vercel Deployment Protection**
+> (Settings → Deployment Protection), dan pasang batas kuota atau anggaran
+> pada kunci di sisi penyedia.
+
 Sudah diuji: dengan kedua variabel terisi, aplikasi hasil build mengenali AI
 sebagai siap pakai, dan nilai kuncinya tidak ada di dalam bundle.
 
