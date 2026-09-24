@@ -34,6 +34,14 @@ describe('validateTopology', () => {
     expect(issues.some((i) => i.text.includes('10.0.0.1') && i.level === 'warn')).toBe(true)
   })
 
+  it('menandai IP manajemen ganda walau salah satunya ditulis dengan prefix', () => {
+    const nodes: AppNode[] = [
+      dev('a', 'SW-01', '10.0.0.1', 'mikrotik-crs309-1g-8sp'),
+      dev('b', 'SW-02', '10.0.0.1/24', 'mikrotik-crs309-1g-8sp'),
+    ]
+    expect(validateTopology(nodes, []).some((i) => i.text.includes('10.0.0.1') && i.level === 'warn')).toBe(true)
+  })
+
   it('menandai hostname ganda', () => {
     const nodes: AppNode[] = [
       dev('a', 'SW-01', '', 'mikrotik-crs309-1g-8sp'),

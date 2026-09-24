@@ -36,7 +36,8 @@ export function validateTopology(nodes: AppNode[], edges: AppEdge[]): Issue[] {
   // IP manajemen ganda
   const byIp = new Map<string, string[]>()
   for (const d of devices) {
-    const ip = d.data.mgmtIp.trim()
+    // Bandingkan alamatnya saja: 10.0.0.1 dan 10.0.0.1/24 tetap dianggap sama.
+    const ip = d.data.mgmtIp.trim().split('/')[0]?.trim() ?? ''
     if (!ip) continue
     byIp.set(ip, [...(byIp.get(ip) ?? []), d.data.hostname])
   }
@@ -90,7 +91,7 @@ export function validateTopology(nodes: AppNode[], edges: AppEdge[]): Issue[] {
         })
       }
 
-      if (cfg.linkType === 'routed' && !cfg.ipAddress) {
+      if (cfg.linkType === 'routed' && !cfg.ipAddress.trim()) {
         issues.push({
           id: `ip-empty-${d.id}-${name}`,
           level: 'info',
