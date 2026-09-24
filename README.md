@@ -1,29 +1,33 @@
-# NetTopo — Editor Topologi Jaringan
+# NetTopo — Network Topology Editor
 
-[![Lisensi: MIT](https://img.shields.io/badge/Lisensi-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Aplikasi web untuk menggambar topologi jaringan sampai level **port-ke-port**,
-dengan katalog perangkat yang sesuai jaringan ISP di Indonesia: **Juniper MX,
-switch & SSW Huawei, MikroTik CRS dan CCR**.
+A web app for drawing network topologies down to the **port-to-port** level,
+with a device catalog built around the hardware Indonesian ISPs actually run:
+**Juniper MX, Huawei switches and SSWs, MikroTik CRS and CCR**, and more.
 
-Mendukung **link aggregation / bonding** — Eth-Trunk (Huawei), ae (Juniper),
-bond (MikroTik) — lengkap dengan daftar port anggotanya, serta **VLAN dan
-link-type per interface** (access / trunk / hybrid / routed) seperti di
-perangkat aslinya.
+It supports **link aggregation / bonding** — Eth-Trunk (Huawei), ae (Juniper),
+bond (MikroTik) — with the full list of member ports, plus **VLANs and a
+link-type per interface** (access / trunk / hybrid / routed), just like on the
+real devices.
 
-Semua data disimpan di browser Anda sendiri (tidak ada server, tidak ada login),
-dan bisa diekspor ke JSON, PNG, SVG, atau CSV.
+All data stays in your own browser (no server, no login) and can be exported
+to JSON, PNG, SVG, or CSV.
+
+> **Note:** the app's interface is in Indonesian. This README quotes button and
+> menu names exactly as they appear on screen, with an English gloss the first
+> time each one comes up.
 
 ---
 
-![Tampilan penuh NetTopo](docs/img/01-tampilan-penuh.png)
+![NetTopo full view](docs/img/01-tampilan-penuh.png)
 
 ---
 
-## Menjalankan
+## Getting started
 
-**Prasyarat:** [Node.js](https://nodejs.org) versi **22.12+ atau 24 LTS**
-(npm sudah termasuk). Periksa dengan `node -v`.
+**Requirements:** [Node.js](https://nodejs.org) **22.12+ or 24 LTS** (npm is
+included). Check with `node -v`.
 
 ```bash
 git clone https://github.com/Masamune21-dev/nettopo.git
@@ -32,272 +36,281 @@ npm install
 npm run dev
 ```
 
-Buka <http://localhost:5173>. Selesai — tidak ada database yang perlu disiapkan
-dan tidak ada server yang perlu dijalankan terpisah. Topologi tersimpan di
-browser Anda sendiri; lihat [Format file JSON](#format-file-json) untuk
-memindahkannya antar komputer.
+Open <http://localhost:5173>. That's it — there is no database to set up and no
+separate server to run. Topologies are saved in your browser; see
+[JSON file format](#json-file-format) for moving them between machines.
 
-| Perintah | Kegunaan |
+| Command | Purpose |
 |---|---|
-| `npm run dev` | Server pengembangan dengan hot reload |
-| `npm run build` | Build produksi ke `dist/` |
-| `npm run preview` | Melihat hasil build produksi |
-| `npm test` | Menjalankan unit test |
-| `npm run test:watch` | Unit test mode watch |
-| `npm run lint` | Pemeriksaan gaya kode |
+| `npm run dev` | Development server with hot reload |
+| `npm run build` | Production build to `dist/` |
+| `npm run preview` | Preview the production build |
+| `npm test` | Run the unit tests |
+| `npm run test:watch` | Unit tests in watch mode |
+| `npm run lint` | Lint the code |
 
-Hasil `npm run build` berupa berkas statis di `dist/`, jadi bisa ditaruh di
-web server mana pun (nginx, Apache, GitHub Pages) tanpa Node.js di sisi server.
-Satu-satunya yang membutuhkan dev server adalah [asisten AI](#asisten-ai-opsional),
-karena kunci API-nya sengaja ditahan di sisi server.
+`npm run build` produces static files in `dist/`, so they can be served from any
+web server (nginx, Apache, GitHub Pages) with no Node.js on the server. The
+only feature that needs a server-side component is the
+[AI assistant](#ai-assistant-optional), because its API key is deliberately
+kept off the browser — the dev server handles that locally, and a serverless
+function does it on [Vercel](#deploying-to-vercel).
 
 ---
 
-## Topologi contoh
+## Sample topology
 
-Saat pertama dibuka, aplikasi memuat contoh jaringan ISP dua POP — **23
-perangkat, 30 link** — yang bisa langsung diutak-atik atau dihapus lewat
-**Buka → Topologi baru**:
+On first launch the app loads a sample two-POP ISP network — **23 devices, 30
+links** — that you can edit right away or clear via **Buka → Topologi baru**
+(*Open → New topology*):
 
-- **Upstream ganda**: IIX peering dan transit internasional, masing-masing ke
-  core yang berbeda
-- **POP JKT-1**: sepasang MX204 saling silang ke dua SSW Huawei, BNG NE8000,
-  firewall manajemen, dan server NMS
-- **POP BDG-1**: MX204 dan SSW sendiri, tersambung ke Jakarta lewat jalur utama
-  dan jalur cadangan yang terpisah
-- **Eth-Trunk**: antar-SSW 2×100G, dan SSW ke distribusi MikroTik 2×10G
-- **FTTH**: OLT Huawei MA5800 dan ZTE C320, lalu ODC → ODP → ONT pelanggan
-- **VLAN**: 100 ritel, 200 korporat, 300 CCTV, 400 manajemen — konsisten dari
-  tulang punggung sampai port pelanggan
-- **13 subnet /30** untuk seluruh link L3
+- **Dual upstream**: IIX peering and international transit, each landing on a
+  different core
+- **POP JKT-1**: a pair of MX204s cross-connected to two Huawei SSWs, an NE8000
+  BNG, a management firewall, and an NMS server
+- **POP BDG-1**: its own MX204 and SSW, connected to Jakarta over separate
+  primary and backup paths
+- **Eth-Trunk**: 2×100G between the SSWs, and 2×10G from SSW to the MikroTik
+  distribution layer
+- **FTTH**: Huawei MA5800 and ZTE C320 OLTs, then ODC → ODP → customer ONT
+- **VLANs**: 100 retail, 200 corporate, 300 CCTV, 400 management — consistent
+  from the backbone down to customer ports
+- **13 /30 subnets** covering every L3 link
 
-![Detail perangkat, port, dan kabel](docs/img/02-detail-perangkat.png)
+![Device, port, and cable detail](docs/img/02-detail-perangkat.png)
 
-Di kanvas terbaca langsung: badge **L3** dan alamat `/30` pada link routed,
-badge **T** untuk port bertag VLAN, Eth-Trunk beserta kapasitas gabungannya
-(`2× 100G`), VLAN yang dibawa tiap kabel, dan rantai FTTH dari OLT turun ke ODC.
+Everything is readable straight off the canvas: **L3** badges and `/30`
+addresses on routed links, a **T** badge on VLAN-tagged ports, Eth-Trunks with
+their combined capacity (`2× 100G`), the VLANs each cable carries, and the FTTH
+chain running from the OLT down through the ODC.
 
-Contoh ini sekaligus jadi rujukan konfigurasi yang benar: ada test yang menjaga
-agar ia selalu lolos **seluruh pemeriksaan tanpa satu pun peringatan** —
-kecepatan kedua ujung cocok, VLAN sepadan, tiap link L3 satu subnet, tidak ada
-port terpakai dua kali, dan tidak ada perangkat menggantung. Kalau suatu saat
-ada aturan pemeriksaan baru yang membuatnya gagal, itu ketahuan langsung.
+The sample doubles as a reference for a correct configuration: a test keeps it
+passing **every check without a single warning** — matching speeds on both
+ends, consistent VLANs, one subnet per L3 link, no port used twice, and no
+dangling devices. If a new check ever makes it fail, that shows up immediately.
 
 ---
 
-## Cara pakai
+## Usage
 
-1. **Seret perangkat** dari panel kiri ke kanvas (atau klik untuk menaruh di tengah).
-2. **Tarik kabel** dari kotak port kecil di sisi node ke port perangkat lain.
-   Port yang sudah terpakai tidak bisa dipakai dua kali, dan bila kecepatan kedua
-   port berbeda, link otomatis memakai yang lebih rendah.
-3. **Klik perangkat atau kabel** untuk mengubah hostname, IP manajemen, nama port,
-   VLAN, kecepatan, dan sebagainya di panel kanan.
-4. Perangkat berport banyak (mis. CRS354 dengan 54 port) tampil ringkas — klik
-   tanda **▸** di pojok node untuk menampilkan seluruh portnya.
-5. **Rapikan** menyusun ulang topologi secara berjenjang (internet → core →
-   SSW/agregasi → distribusi → akses), memindahkan tiap port ke sisi node yang
-   menghadap perangkat lawannya, dan menyesuaikan kotak area agar tetap
-   memeluk perangkat yang sama. Menu yang sama juga berisi **rata kiri/kanan/
-   atas/bawah/tengah** dan **sebar merata** untuk objek yang sedang dipilih.
-6. **Simpan** menyimpan ke browser; ada juga autosave setiap 1,5 detik setelah
-   perubahan terakhir.
-7. **Ekspor** ke PNG/SVG untuk laporan, JSON untuk cadangan, atau CSV untuk
-   rekap. Ekspor CSV menghasilkan tiga berkas: `-perangkat.csv`, `-link.csv`,
-   dan `-interface.csv` — yang terakhir berisi link-type, PVID, VLAN
-   tagged/untagged, dan IP setiap interface.
+1. **Drag a device** from the left panel onto the canvas (or click it to drop it
+   in the center).
+2. **Draw a cable** from the small port box on the side of a node to a port on
+   another device. A port that is already in use can't be used twice, and if the
+   two ports have different speeds the link takes the lower one.
+3. **Click a device or cable** to edit its hostname, management IP, port names,
+   VLANs, speed, and so on in the right panel.
+4. Devices with many ports (e.g. a 54-port CRS354) are shown collapsed — click
+   the **▸** in the node's corner to show every port.
+5. **Rapikan** (*Tidy up*) re-lays out the topology in tiers (internet → core →
+   SSW/aggregation → distribution → access), moves each port to the side of the
+   node facing its peer, and resizes area boxes so they still wrap the same
+   devices. The same menu also has **align left/right/top/bottom/center** and
+   **distribute evenly** for the current selection.
+6. **Simpan** (*Save*) stores the topology in the browser; there is also an
+   autosave 1.5 seconds after the last change.
+7. **Ekspor** (*Export*) to PNG/SVG for reports, JSON for backups, or CSV for
+   inventories. The CSV export produces three files: `-perangkat.csv`
+   (devices), `-link.csv` (links), and `-interface.csv` — the last one lists the
+   link-type, PVID, tagged/untagged VLANs, and IP of every interface.
 
-### Menggeser kabel
+### Bending cables
 
-Kabel tidak harus lurus dari port ke port:
+Cables don't have to run straight from port to port:
 
-1. **Klik kabelnya** di kanvas. Muncul titik-titik kecil di tengah tiap ruas.
-2. **Klik titik kecil** itu untuk menambah belokan di situ.
-3. **Geser** bulatan yang muncul untuk memindahkan belokan; **klik ganda** untuk
-   menghapusnya. Satu kali geser = satu langkah undo.
-4. Di panel kanan, **Gaya kabel** bisa diubah: *Lengkung* (bawaan), *Siku
-   (orthogonal)* untuk diagram bergaya rak, atau *Lurus*. Tombol **Hapus
-   belokan** membuang semua titik belok pada kabel itu.
+1. **Click the cable** on the canvas. Small dots appear in the middle of each
+   segment.
+2. **Click a dot** to add a bend there.
+3. **Drag** the handle that appears to move the bend; **double-click** it to
+   remove it. One drag = one undo step.
+4. In the right panel, **Gaya kabel** (*Cable style*) can be switched between
+   *Lengkung* (*Curved*, the default), *Siku (orthogonal)* for rack-style
+   diagrams, or *Lurus* (*Straight*). **Hapus belokan** (*Remove bends*) clears
+   every bend on that cable.
 
-### Membuat kabel benar-benar lurus
+### Making a cable perfectly straight
 
-Kabel sering terlihat “hampir lurus tapi ada sikunya” karena kedua portnya
-berbeda beberapa piksel: baris port di dalam node berjarak 12 px, sedangkan
-node melompat mengikuti grid, jadi selisihnya jarang pas nol.
+A cable often looks "almost straight but with a kink" because its two ports are
+a few pixels apart: port rows inside a node are 12 px apart, while nodes snap to
+the grid, so the offset is rarely exactly zero.
 
-Menggambar ulang kabelnya tidak menolong — kedua ujungnya menempel di port.
-Yang perlu digeser justru perangkatnya. Pilih kabelnya, lalu tekan
-**Luruskan kabel** di panel kanan: salah satu perangkat digeser secukupnya
-sampai kedua port sejajar, dan tombolnya berubah jadi “Kabel sudah lurus”.
-Jumlah pikselnya ditulis di tombol; kalau lebih dari 100 px tombolnya berwarna
-kuning sebagai peringatan bahwa tata letak akan berubah terlihat. Semua bisa
-dibatalkan dengan `Cmd/Ctrl + Z`.
+Redrawing the cable doesn't help — both ends are pinned to their ports. It's the
+device that needs to move. Select the cable and press **Luruskan kabel**
+(*Straighten cable*) in the right panel: one of the devices is shifted just
+enough to line the two ports up, and the button changes to "Kabel sudah lurus"
+(*Cable is straight*). The number of pixels is shown on the button; above
+100 px it turns yellow as a warning that the layout will visibly change.
+Everything can be undone with `Cmd/Ctrl + Z`.
 
-Ukuran grid sendiri bisa diganti lewat menu **Grid** di toolbar: 8, 16
-(bawaan), 24, atau 32 px — sekaligus mengatur kerapatan titik latar.
+The grid size itself can be changed from the **Grid** menu in the toolbar: 8,
+16 (default), 24, or 32 px — which also sets the density of the background dots.
 
-Titik belok ikut tersimpan di file JSON. Auto-layout membuangnya karena posisi
-perangkat berubah — jumlah yang dibuang disebutkan di notifikasi.
+Bends are saved in the JSON file. Auto-layout discards them because device
+positions change — the notification says how many were removed.
 
-### Alamat IP (IPAM)
+### IP addressing (IPAM)
 
-![Rekap alamat IP](docs/img/05-alamat-ip.png)
+![IP address overview](docs/img/05-alamat-ip.png)
 
-Tombol **IP** di toolbar membuka rekap pengalamatan seluruh topologi:
+The **IP** button in the toolbar opens an addressing overview for the whole
+topology:
 
-- **Daftar subnet** yang sedang dipakai, lengkap dengan rentang alamat,
-  kapasitas, dan interface mana saja yang menghuninya. Klik salah satu untuk
-  melompat ke perangkatnya di kanvas.
-- **Beri alamat otomatis** untuk link L3 yang kedua ujungnya bermode *routed*
-  tapi masih kosong. Tentukan blok induk (mis. `10.0.0.0/16`) dan ukuran per
-  link — `/30`, `/31` (RFC 3021), atau `/29` — lalu semua link yang menunggu
-  diisi sekaligus. Blok yang sudah terpakai dilewati, jadi pemberian alamat
-  aman diulang kapan saja. Bisa dibatalkan dengan `Cmd/Ctrl + Z`.
-- **Ekspor CSV** rencana pengalamatan, untuk lampiran dokumen atau diimpor ke
-  sistem lain.
+- **Subnet list** of everything in use, with address range, capacity, and which
+  interfaces live in it. Click one to jump to its device on the canvas.
+- **Beri alamat otomatis** (*Auto-assign addresses*) for L3 links whose two ends
+  are both *routed* but still empty. Pick a parent block (e.g. `10.0.0.0/16`)
+  and a per-link size — `/30`, `/31` (RFC 3021), or `/29` — and every pending
+  link is filled in one go. Blocks already in use are skipped, so it is safe to
+  run again at any time. Undo with `Cmd/Ctrl + Z`.
+- **CSV export** of the addressing plan, for document appendices or importing
+  into other systems.
 
-Masalah pengalamatan muncul di panel **Pemeriksaan** bersama temuan lain:
+Addressing problems appear in the **Pemeriksaan** (*Checks*) panel alongside
+other findings:
 
-| Diperiksa | Contoh |
+| Check | Example |
 |---|---|
-| Tulisan alamat tidak sah | `10.0.0.999/30` |
-| Alamat jaringan atau broadcast dipakai host | `10.0.0.4/30` pada /30 |
-| Alamat sama dipakai dua interface | dua perangkat memakai `10.0.0.1` |
-| Dua ujung link beda subnet | `10.0.0.1/30` ↔ `10.0.0.9/30` |
-| Hanya satu ujung yang beralamat | sisi lawan masih kosong |
-| Blok tumpang tindih | `10.0.0.0/24` dan `10.0.0.128/25` |
-| Blok kelebihan penghuni | 3 interface di dalam satu `/30` |
+| Invalid address | `10.0.0.999/30` |
+| Network or broadcast address used by a host | `10.0.0.4/30` on a /30 |
+| Same address on two interfaces | two devices using `10.0.0.1` |
+| Link ends in different subnets | `10.0.0.1/30` ↔ `10.0.0.9/30` |
+| Only one end addressed | the other side is still empty |
+| Overlapping blocks | `10.0.0.0/24` and `10.0.0.128/25` |
+| Over-full block | 3 interfaces inside one `/30` |
 
-### VLAN & mode interface
+### VLANs & interface modes
 
-<img src="docs/img/03-panel-perangkat.png" width="380" alt="Panel properti perangkat">
+<img src="docs/img/03-panel-perangkat.png" width="380" alt="Device properties panel">
 
 
-> **Catatan istilah:** "Eth-Trunk" (bonding) dan "link-type trunk" (VLAN
-> bertag) sama-sama memakai kata *trunk* tetapi berbeda hal. Di aplikasi ini
-> bagian **Trunk / bonding** mengurus agregasi port, sedangkan **link-type**
-> mengurus VLAN.
+> **A note on terms:** "Eth-Trunk" (bonding) and "link-type trunk" (tagged
+> VLANs) both use the word *trunk* but mean different things. In this app the
+> **Trunk / bonding** section handles port aggregation, while **link-type**
+> handles VLANs.
 
-Setiap interface — port fisik maupun Eth-Trunk — punya baris pengaturan
-sendiri di panel kanan:
+Every interface — physical port or Eth-Trunk — has its own settings row in the
+right panel:
 
-| Link-type | Field yang muncul | Setara di perangkat |
+| Link-type | Fields shown | Device equivalent |
 |---|---|---|
 | **Access** | VLAN | `port link-type access` + `port default vlan 100` |
-| **Trunk** | PVID + daftar VLAN tagged | `port link-type trunk` + `port trunk allow-pass vlan …` |
+| **Trunk** | PVID + tagged VLAN list | `port link-type trunk` + `port trunk allow-pass vlan …` |
 | **Hybrid** | PVID + tagged + untagged | `port link-type hybrid` |
-| **Routed / L3** | Alamat IP | interface L3 ber-IP (MX, CCR, L3 switch) |
+| **Routed / L3** | IP address | an L3 interface with an IP (MX, CCR, L3 switch) |
 
-- Daftar VLAN ditulis gaya CLI: `100,200,300-310`. Kotaknya berubah merah
-  kalau formatnya salah, dan alasannya muncul saat disorot.
-- Di kanvas tiap interface diberi badge kecil: **A100** (access VLAN 100),
-  **T** (trunk), **H** (hybrid), **L3**. Detail lengkapnya muncul di tooltip.
-- Label pada kabel otomatis mengambil VLAN atau IP dari konfigurasi
-  interface-nya — jadi tidak perlu mengetik dua kali.
-- **Isi massal:** centang banyak port sekaligus, klik **VLAN**, isi sekali,
-  lalu **Terapkan** — praktis untuk switch 48 port.
-- Pemeriksaan otomatis menandai: daftar VLAN yang tidak sah, port access yang
-  VLAN-nya kosong, PVID di luar daftar tagged, link-type berbeda di dua ujung
-  link, dan VLAN yang hanya ada di satu sisi.
+- VLAN lists use CLI syntax: `100,200,300-310`. The field turns red if the
+  format is wrong, and the reason appears on hover.
+- On the canvas each interface gets a small badge: **A100** (access VLAN 100),
+  **T** (trunk), **H** (hybrid), **L3**. The full details are in the tooltip.
+- Cable labels automatically pick up the VLANs or IP from the interface
+  configuration — no need to type them twice.
+- **Bulk edit:** tick several ports, click **VLAN**, fill it in once, then
+  **Terapkan** (*Apply*) — handy for 48-port switches.
+- Automatic checks flag: invalid VLAN lists, access ports with no VLAN, a PVID
+  outside the tagged list, mismatched link-types on the two ends of a link, and
+  VLANs present on only one side.
 
 ### Bonding / link aggregation
 
-1. Pilih perangkatnya, lalu di panel kanan centang **2 port atau lebih** yang
-   mau digabung (port yang sudah punya link sendiri tidak bisa dicentang).
-2. Klik **Jadikan trunk**. Namanya otomatis mengikuti OS perangkat:
+1. Select the device, then in the right panel tick **2 or more ports** to bundle
+   (ports that already have their own link can't be ticked).
+2. Click **Jadikan trunk** (*Make trunk*). The name follows the device's OS:
 
-   | Vendor | Nama otomatis |
+   | Vendor | Automatic name |
    |---|---|
    | Huawei (VRP) | `Eth-Trunk1`, `Eth-Trunk2`, … |
    | Juniper (Junos) | `ae0`, `ae1`, … |
    | MikroTik (RouterOS) | `bond1`, `bond2`, … |
-   | Lainnya | `lag1`, `lag2`, … |
+   | Others | `lag1`, `lag2`, … |
 
-3. Di kanvas, trunk muncul sebagai **satu interface logis** (kotak lebar
-   bergaris ganda) dengan keterangan `2× 10G`; port anggotanya disembunyikan
-   supaya diagram tetap bersih. Tarik kabel dari trunk ke trunk di perangkat
-   lawan seperti port biasa.
-4. Mode bisa diubah antara **LACP (dinamis)** dan **manual/static**, anggota
-   bisa ditambah atau dikeluarkan kapan saja, dan kapasitas total dihitung
-   otomatis (`2× 10G = 20G`).
-5. Pemeriksaan otomatis memperingatkan bila trunk cuma punya 1 anggota,
-   anggotanya beda kecepatan, atau jumlah anggota di dua ujung link tidak sama.
+3. On the canvas the trunk appears as **one logical interface** (a wide,
+   double-bordered box) labelled `2× 10G`; its member ports are hidden to keep
+   the diagram clean. Draw a cable from trunk to trunk on the peer device just
+   like a regular port.
+4. The mode can be switched between **LACP (dynamic)** and **manual/static**,
+   members can be added or removed at any time, and total capacity is computed
+   automatically (`2× 10G = 20G`).
+5. Automatic checks warn when a trunk has only 1 member, its members have
+   different speeds, or the member counts on the two ends of a link don't match.
 
-### Pintasan keyboard
+### Keyboard shortcuts
 
-| Tombol | Aksi |
+| Key | Action |
 |---|---|
-| `⌘/Ctrl + S` | Simpan |
+| `⌘/Ctrl + S` | Save |
 | `⌘/Ctrl + Z` | Undo |
 | `Shift + ⌘/Ctrl + Z` | Redo |
-| `⌘/Ctrl + D` | Duplikat yang terpilih |
-| `Delete` / `Backspace` | Hapus yang terpilih |
-| `Esc` | Batalkan seleksi |
-| `?` | Bantuan |
+| `⌘/Ctrl + D` | Duplicate selection |
+| `Delete` / `Backspace` | Delete selection |
+| `Esc` | Clear selection, or close the open dialog |
+| `?` | Help |
 
-Scroll untuk menggeser kanvas, `⌥/Alt + scroll` untuk zoom, drag kiri untuk
-seleksi kotak, drag tengah/kanan untuk menggeser.
+Scroll to pan the canvas, `⌥/Alt + scroll` to zoom, left-drag for box
+selection, middle/right-drag to pan. Canvas shortcuts are ignored while a
+dialog is open.
 
 ---
 
-## Asisten AI (opsional)
+## AI assistant (optional)
 
-NetTopo bisa disambungkan ke endpoint apa pun yang kompatibel OpenAI — misalnya
-9Router, atau server lokal seperti Ollama. Tanpa pengaturan ini, semua fitur
-lain tetap berjalan normal.
+NetTopo can connect to any OpenAI-compatible endpoint — for example 9Router, or
+a local server such as Ollama. Without this setup, every other feature works as
+normal.
 
-### Mengatur kunci
+### Setting up the key
 
 ```bash
 cp .env.example .env
 ```
 
-Buka `.env`, isi `AI_API_KEY`, lalu jalankan ulang `npm run dev`.
+Open `.env`, fill in `AI_BASE_URL` and `AI_API_KEY`, then restart
+`npm run dev`.
 
-**Kunci tidak pernah sampai ke browser.** Berkas `.env` hanya dibaca dev server,
-yang menyisipkannya sebagai header `Authorization` saat meneruskan permintaan —
-jadi kunci tidak muncul di tab Network, tidak ikut ter-bundle, dan `.env` sudah
-masuk `.gitignore`. Browser hanya memanggil `/ai/...` di localhost.
+**The key never reaches the browser.** `.env` is read only by the dev server,
+which adds it as an `Authorization` header when forwarding requests — so the key
+doesn't show up in the Network tab, isn't bundled, and `.env` is already in
+`.gitignore`. The browser only ever calls `/ai/...` on localhost.
 
-![Asisten AI menelaah topologi](docs/img/06-asisten-ai.png)
+![AI assistant reviewing a topology](docs/img/06-asisten-ai.png)
 
-### Lima tugas yang tersedia
+### The five tasks
 
-| Tugas | Keluaran |
+| Task | Output |
 |---|---|
-| **Konfigurasi perangkat** | Konfigurasi siap tempel per perangkat dalam sintaks Junos / VRP / RouterOS, dari VLAN dan trunk yang sudah didokumentasikan |
-| **Audit & saran** | Daftar temuan bertingkat keparahan: titik tunggal kegagalan, jalur cadangan yang tidak terpisah, kapasitas tak seimbang, penamaan tak konsisten |
-| **Dokumentasi jaringan** | Dokumen Markdown: arsitektur, tabel perangkat, tabel sambungan, rancangan VLAN |
-| **Rapikan gambar** | AI menentukan pengelompokan dan arah; penempatan piksel tetap dikerjakan algoritma |
-| **Buat dari deskripsi** | Tulis rancangan dengan kalimat, perangkat dan link dibuatkan dari katalog sebagai proyek baru (proyek yang sedang dibuka tidak ditimpa) |
+| **Device configuration** | Paste-ready configuration per device in Junos / VRP / RouterOS syntax, built from the VLANs and trunks already documented |
+| **Audit & suggestions** | Findings ranked by severity: single points of failure, backup paths that aren't diverse, unbalanced capacity, inconsistent naming |
+| **Network documentation** | A Markdown document: architecture, device table, connection table, VLAN plan |
+| **Tidy the drawing** | The AI decides grouping and direction; pixel placement is still done by the layout algorithm |
+| **Build from a description** | Describe the design in plain sentences; devices and links are created from the catalog as a new project (the project you have open is not overwritten) |
 
-Endpoint yang membalas dalam bentuk aliran SSE maupun satu objek JSON
-sama-sama didukung; untuk keluaran panjang, teksnya tampil bertahap sambil
-datang.
+Endpoints that respond with an SSE stream or with a single JSON object are both
+supported; for long outputs the text appears progressively as it arrives.
 
-Dua tugas terakhir mengubah kanvas. Keduanya masuk riwayat, jadi bisa
-dibatalkan dengan `Cmd/Ctrl + Z`. Jawaban AI selalu divalidasi dulu dengan
-skema: model yang tidak ada di katalog, port yang tidak dimiliki perangkat,
-atau hostname yang tidak dikenal akan dilewati dan dilaporkan sebagai
-peringatan — bukan diterapkan diam-diam.
+The last two tasks change the canvas, and neither does it blindly. Tidying goes
+into the undo history, so `Cmd/Ctrl + Z` reverts it. Building from a
+description creates a separate project, and the previous one stays available
+under **Buka** (*Open*). AI responses are always validated against a schema
+first: models that aren't in the catalog, ports a device doesn't have, or
+unknown hostnames are skipped and reported as warnings — never applied
+silently.
 
-### Pertimbangan privasi
+### Privacy considerations
 
-Ringkasan topologi — hostname, IP manajemen, VLAN, dan detail sambungan —
-dikirim ke endpoint yang Anda pasang. Untuk topologi yang sensitif, arahkan
-`AI_BASE_URL` ke model lokal (mis. `http://localhost:11434/v1`) agar datanya
-tidak meninggalkan mesin Anda.
+A summary of the topology — hostnames, management IPs, VLANs, and connection
+details — is sent to the endpoint you configure. For sensitive topologies,
+point `AI_BASE_URL` at a local model (e.g. `http://localhost:11434/v1`) so the
+data never leaves your machine.
 
-## Katalog perangkat
+## Device catalog
 
-<img src="docs/img/04-katalog.png" width="300" align="right" alt="Katalog perangkat per merek">
+<img src="docs/img/04-katalog.png" width="300" align="right" alt="Device catalog grouped by vendor">
 
-Katalog berisi **101 model** dari 13 vendor, termasuk **16 OLT** untuk jaringan
-FTTH. Di panel kiri tiap merek bisa dilipat supaya tidak memenuhi layar —
-kelompok yang punya hasil pencarian terbuka sendiri, dan kelompok mana yang
-terbuka diingat.
+The catalog contains **101 models** from 13 vendors, including **16 OLTs** for
+FTTH networks. In the left panel each vendor can be collapsed so it doesn't fill
+the screen — groups with search matches open by themselves, and which groups
+are open is remembered.
 
-| Vendor | Jumlah | Contoh model | Pola nama interface |
+| Vendor | Count | Example models | Interface naming |
 |---|---|---|---|
 | **Juniper** | 12 | MX204, MX304, MX480/960, MX10003, ACX7100, QFX5120, EX4600, EX4300, SRX4100 | `ge-0/0/x`, `xe-0/0/x`, `et-0/0/x` |
 | **Huawei** | 18 | NE8000 M8, NE40E-M2K, S5731, S5720, S6730, CE6881, CE6865E, CE8850 · OLT MA5800-X2/X7/X15, MA5608T | `GE0/0/x`, `10GE1/0/x`, `100GE0/1/x`, `GPON0/1/x` |
@@ -311,33 +324,33 @@ terbuka diingat.
 | **V-SOL** | 2 | OLT V1600D (EPON), V1600G2 (GPON) | `epon0/x`, `gpon0/x`, `ge0/x` |
 | **C-Data** | 2 | OLT FD1216S, FD1104S | `gpon0/x`, `ge0/x`, `xge0/x` |
 | **HTB** | 4 | HTB-GS-03, HTB-GS-03 A/B, HTB-1100S, HTB-3100 A/B | `fiber1`, `utp1` |
-| **Umum** | 13 | Router, Switch, Firewall, Server, OLT, ODC, ODP, Splitter 1:8, ONT, AP, Media Converter, CPE, Internet | bebas, port ditambah manual |
+| **Generic** | 13 | Router, Switch, Firewall, Server, OLT, ODC, ODP, 1:8 Splitter, ONT, AP, Media Converter, CPE, Internet | free-form, ports added manually |
 
-Penamaan port Juniper, Huawei, MikroTik, ZTE, dan Cisco mengikuti konvensi
-resmi vendornya. Untuk **FiberHome, BDCOM, V-SOL, dan C-Data**, penamaannya
-adalah perkiraan yang wajar dan diberi tanda di tooltip masing-masing —
-cocokkan dengan keluaran `show interface` perangkat Anda, lalu sesuaikan lewat
-tabel port di panel kanan atau langsung di katalog.
+Port naming for Juniper, Huawei, MikroTik, ZTE, and Cisco follows each vendor's
+official conventions. For **FiberHome, BDCOM, V-SOL, and C-Data** the naming is
+a reasonable approximation and is flagged as such in each tooltip — compare it
+with your device's `show interface` output, then adjust it in the port table in
+the right panel or directly in the catalog.
 
-Media converter punya perannya sendiri, jadi auto-layout menaruhnya sejajar
-lapisan akses — bukan ikut turun ke lapisan pelanggan.
+Media converters have their own role, so auto-layout places them alongside the
+access layer rather than down with the customer layer.
 
 <br clear="right">
 
-### Menambah model baru
+### Adding a new model
 
-Semua spesifikasi hardware ada di satu file: [`src/data/deviceCatalog.ts`](src/data/deviceCatalog.ts).
-Menambah model cukup menambahkan satu entri:
+All hardware specs live in one file: [`src/data/deviceCatalog.ts`](src/data/deviceCatalog.ts).
+Adding a model is a single entry:
 
 ```ts
 {
-  id: 'mikrotik-ccr2004-16g-2sp',        // unik, dipakai di file JSON
+  id: 'mikrotik-ccr2004-16g-2sp',        // unique, used in JSON files
   vendor: 'mikrotik',
   series: 'CCR2004',
   model: 'CCR2004-16G-2S+',
-  role: 'router',                         // menentukan ikon, warna, dan lapisan auto-layout
+  role: 'router',                         // sets the icon, color, and auto-layout tier
   os: 'routeros',
-  note: '16× GE + 2× SFP+ 10G',           // tampil di tooltip palette
+  note: '16× GE + 2× SFP+ 10G',           // shown in the palette tooltip
   ports: [
     { prefix: 'ether',       count: 16, startIndex: 1, speed: '1G',  media: 'rj45', group: 'Ethernet' },
     { prefix: 'sfp-sfpplus', count: 2,  startIndex: 1, speed: '10G', media: 'sfp+', group: 'SFP+ 10G' },
@@ -345,22 +358,23 @@ Menambah model cukup menambahkan satu entri:
 }
 ```
 
-- `prefix` + nomor + `suffix` membentuk nama interface: `ether1`, `et-0/0/0`,
-  `10GE1/0/1`, `qsfpplus1-1`, dan seterusnya.
-- `startIndex` **0** untuk Juniper, **1** untuk Huawei dan MikroTik.
-- Nama dan jumlah port juga bisa diubah langsung dari UI (tabel port di panel
-  kanan) tanpa menyentuh kode — perubahan itu tersimpan per perangkat.
+- `prefix` + number + `suffix` form the interface name: `ether1`, `et-0/0/0`,
+  `10GE1/0/1`, `qsfpplus1-1`, and so on.
+- `startIndex` is **0** for Juniper and **1** for Huawei and MikroTik.
+- Port names and counts can also be changed straight from the UI (the port
+  table in the right panel) without touching code — those changes are saved per
+  device.
 
-Spesifikasi port bawaan mengikuti konfigurasi umum tiap model. Untuk chassis
-modular (MX240/480/960/10003) yang dipakai adalah konfigurasi contoh, karena
-port sesungguhnya bergantung pada MPC/MIC yang terpasang — silakan sesuaikan.
+Default port specs follow each model's common configuration. For modular
+chassis (MX240/480/960/10003) a sample configuration is used, since the real
+ports depend on the installed MPCs/MICs — adjust as needed.
 
 ---
 
-## Format file JSON
+## JSON file format
 
-Ekspor JSON menghasilkan dokumen yang bisa diimpor kembali, disimpan di git,
-atau dibaca oleh skrip lain. Strukturnya (lihat [`src/types/topology.ts`](src/types/topology.ts)):
+JSON export produces a document that can be imported again, kept in git, or
+read by other scripts. Its structure (see [`src/types/topology.ts`](src/types/topology.ts)):
 
 ```jsonc
 {
@@ -382,7 +396,7 @@ atau dibaca oleh skrip lain. Strukturnya (lihat [`src/types/topology.ts`](src/ty
           "linkType": "trunk", "pvid": 1, "allowedVlans": "1,100,200,300-305",
           "untaggedVlans": "", "ipAddress": "" }
       ],
-      // Eth-Trunk juga punya link-type & VLAN sendiri, sama seperti port fisik
+      // An Eth-Trunk has its own link-type & VLANs, just like a physical port
       "trunks": [
         { "id": "trk_1", "name": "ae0", "mode": "lacp",
           "memberIds": ["p_3", "p_4"], "description": "", "side": "left",
@@ -392,7 +406,7 @@ atau dibaca oleh skrip lain. Strukturnya (lihat [`src/types/topology.ts`](src/ty
     }
   ],
   "links": [
-    // Ujung link menunjuk port fisik ATAU trunk — salah satu terisi.
+    // Each link end points at a physical port OR a trunk — exactly one is set.
     { "id": "lnk_1",
       "a": { "deviceId": "dev_1", "portId": "p_1", "trunkId": null },
       "b": { "deviceId": "dev_2", "portId": "p_9", "trunkId": null },
@@ -406,128 +420,131 @@ atau dibaca oleh skrip lain. Strukturnya (lihat [`src/types/topology.ts`](src/ty
       "speed": "10G", "media": "fiber", "kind": "lacp",
       "label": "", "vlans": "", "color": null }
   ],
-  "groups": [ /* kotak area / POP */ ],
-  "notes":  [ /* catatan tempel */ ]
+  "groups": [ /* area / POP boxes */ ],
+  "notes":  [ /* sticky notes */ ]
 }
 ```
 
-File yang diimpor divalidasi dengan zod; kalau ada yang tidak sesuai, aplikasi
-menyebutkan field mana yang bermasalah dan tidak menimpa pekerjaan Anda.
+Imported files are validated with zod; if something doesn't match, the app
+names the offending field and leaves your current work untouched. Broken
+references — duplicate IDs, links pointing at devices, ports, or trunks that
+don't exist, missing trunk members, unknown parent groups — are dropped on
+import, and the app tells you how many were removed. If an imported file has
+the same project ID as one already saved, it gets a new ID so it can't
+overwrite the saved copy.
 
-File lama tetap bisa dibuka — **versi 1** (sebelum ada trunk), **2** (sebelum
-ada VLAN), dan **3** (sebelum kabel bisa dibelokkan). Field baru terisi nilai
-bawaan, lalu file tersimpan ulang sebagai versi 4.
+Older files still open — **version 1** (before trunks), **2** (before VLANs),
+and **3** (before bendable cables). New fields get default values, and the file
+is saved back as version 4.
 
 ---
 
-## Deploy ke Vercel
+## Deploying to Vercel
 
-Hasil build berupa berkas statis, jadi deploy-nya sederhana: hubungkan repo ini
-di dashboard Vercel, biarkan semua pengaturan bawaan (Vercel mengenali Vite
-sendiri), lalu **Deploy**.
+The build output is static, so deploying is simple: connect this repo in the
+Vercel dashboard, keep the default settings (Vercel detects Vite on its own),
+and hit **Deploy**.
 
-Agar asisten AI ikut hidup, isi Environment Variables berikut di Vercel —
+To enable the AI assistant, add these Environment Variables in Vercel —
 Settings → Environment Variables:
 
-| Nama | Isi |
+| Name | Value |
 |---|---|
-| `AI_BASE_URL` | alamat endpoint kompatibel OpenAI, mis. `https://endpoint-anda.example/v1` |
-| `AI_API_KEY` | kunci API dari penyedia endpoint itu |
-| `AI_ACCESS_CODE` | *(disarankan untuk deploy publik)* kode akses bebas pilih, mis. kalimat acak panjang |
+| `AI_BASE_URL` | the OpenAI-compatible endpoint URL, e.g. `https://your-endpoint.example/v1` |
+| `AI_API_KEY` | the API key from that endpoint's provider |
+| `AI_ACCESS_CODE` | *(recommended for public deployments)* an access code of your choice, e.g. a long random phrase |
 
-Keduanya **tanpa awalan `VITE_`**, dan itu disengaja: variabel berawalan
-`VITE_` ikut masuk ke berkas JavaScript yang diunduh browser. Tanpa awalan itu,
-kunci hanya terbaca saat build dan oleh fungsi server.
+None of them use the **`VITE_` prefix**, and that's intentional: variables
+prefixed with `VITE_` end up in the JavaScript files the browser downloads.
+Without it, the values are only read at build time and by the server function.
 
-Permintaan AI dari browser menuju `/ai/...`, lalu diteruskan oleh fungsi
-[`api/ai/[...path].ts`](api/ai/) yang menempelkan header `Authorization` di
-sisi server — persis seperti yang dilakukan dev server saat pengembangan.
-Fungsi itu berjalan di Edge runtime dan meneruskan balasan sebagai aliran,
-sehingga jawaban panjang mulai tampil dalam hitungan detik.
+AI requests from the browser go to `/ai/...` and are forwarded by the
+[`api/ai/[...path].ts`](api/ai/) function, which adds the `Authorization`
+header on the server side — exactly what the dev server does during
+development. The function runs on the Edge runtime and streams the response
+through, so long answers start appearing within seconds.
 
-Penerus itu hanya meneruskan dua panggilan yang dipakai aplikasi
-(`GET /models` dan `POST /chat/completions`), hanya dari halaman aplikasi itu
-sendiri, dan menolak badan permintaan di atas 2 MB — aturannya ada di
-[`src/lib/aiGuard.ts`](src/lib/aiGuard.ts), dipakai juga oleh dev server.
+The proxy only forwards the two calls the app uses (`GET /models` and
+`POST /chat/completions`), only from the app's own pages, and rejects request
+bodies over 2 MB — the rules live in [`src/lib/aiGuard.ts`](src/lib/aiGuard.ts)
+and are shared with the dev server.
 
-> **Penting untuk deploy publik:** tanpa `AI_ACCESS_CODE`, siapa pun yang
-> membuka alamat deploy Anda bisa memakai asisten AI dengan kunci Anda — dan
-> pemeriksaan asal permintaan bisa dipalsukan dari `curl`. Dengan
-> `AI_ACCESS_CODE` terisi, penerus menolak setiap permintaan yang tidak
-> membawa kode itu. Pengguna mengisinya sekali di kolom **Kode akses** pada
-> dialog AI; kodenya tersimpan di browser masing-masing dan tidak diteruskan
-> ke penyedia AI. Bagikan kode hanya ke orang yang boleh memakai AI, dan ganti
-> nilainya (lalu deploy ulang) kalau bocor.
+> **Important for public deployments:** without `AI_ACCESS_CODE`, anyone who
+> opens your deployment can use the AI assistant on your key — and the origin
+> check can be spoofed from `curl`. With `AI_ACCESS_CODE` set, the proxy rejects
+> every request that doesn't carry the code. Users enter it once in the
+> **Kode akses** (*Access code*) field of the AI dialog; it is stored in their
+> own browser and is never forwarded to the AI provider. Share the code only
+> with people who should use the AI, and change it (then redeploy) if it leaks.
 >
-> Tetap pasang batas kuota atau anggaran pada kunci di sisi penyedia sebagai
-> pengaman terakhir.
+> Also set a quota or spending limit on the key at the provider as a last line
+> of defense.
 
-Sudah diuji: dengan kedua variabel terisi, aplikasi hasil build mengenali AI
-sebagai siap pakai, dan nilai kuncinya tidak ada di dalam bundle.
+Verified: with the variables set, the built app detects the AI as ready, and
+neither the key nor the access code appears anywhere in the bundle.
 
-Tanpa kedua variabel itu aplikasi tetap jalan normal — hanya tombol AI yang
-menampilkan petunjuk pengaturan.
+Without `AI_BASE_URL` and `AI_API_KEY` the app still works normally — the AI
+button just shows setup instructions.
 
 ---
 
-## Memperbarui tangkapan layar
+## Updating the screenshots
 
-Gambar di README dibuat ulang lewat skrip, bukan ditangkap manual, supaya
-selalu konsisten dan mudah disegarkan saat tampilan berubah:
+The images in this README are regenerated by a script rather than captured by
+hand, so they stay consistent and are easy to refresh when the UI changes:
 
 ```bash
-npm run dev                       # di terminal lain
+npm run dev                       # in another terminal
 npm install --no-save playwright
 node scripts/screenshots.mjs
 ```
 
-Skrip memakai Chrome yang sudah terpasang di sistem, jadi tidak perlu mengunduh
-browser terpisah. Playwright sengaja tidak dijadikan dependensi tetap karena
-hanya dibutuhkan saat memperbarui dokumentasi.
+The script uses the Chrome already installed on your system, so no separate
+browser download is needed. Playwright is deliberately not a permanent
+dependency because it's only needed when updating the docs.
 
 ---
 
-## Struktur kode
+## Code structure
 
 ```
 src/
-├─ types/topology.ts        # tipe + skema zod + palet warna
-├─ data/deviceCatalog.ts    # katalog vendor/model/port  ← ubah di sini untuk menambah perangkat
-├─ data/sampleTopology.ts   # topologi contoh saat pertama dibuka
-├─ store/useTopologyStore.ts# state kanvas, undo/redo, aturan penyambungan port
-├─ store/useUiStore.ts      # tema, panel, preferensi tampilan
-├─ components/              # Toolbar, DevicePalette, Canvas, node, edge, Inspector
-└─ lib/                     # ports, layout (dagre), serialize, persistence, export, validate
+├─ types/topology.ts        # types + zod schema + color palette
+├─ data/deviceCatalog.ts    # vendor/model/port catalog  ← edit here to add devices
+├─ data/sampleTopology.ts   # sample topology shown on first launch
+├─ store/useTopologyStore.ts# canvas state, undo/redo, port connection rules
+├─ store/useUiStore.ts      # theme, panels, display preferences
+├─ components/              # Toolbar, DevicePalette, Canvas, nodes, edges, Inspector
+└─ lib/                     # ports, layout (dagre), serialize, persistence, export, validate, AI
 ```
 
 ---
 
-## Yang belum ada (rencana berikutnya)
+## Not yet available (roadmap)
 
-- Monitoring live: warna up/down per perangkat dan link lewat ping/SNMP.
-- Auto-discovery LLDP/SNMP untuk menggambar topologi otomatis.
-- Backend multi-user dengan login dan riwayat perubahan.
+- Live monitoring: up/down colors per device and link via ping/SNMP.
+- LLDP/SNMP auto-discovery to draw topologies automatically.
+- A multi-user backend with login and change history.
 
-Struktur data sekarang sudah disiapkan untuk itu: tinggal menambah backend yang
-mengirim status per `deviceId`/`linkId`, tanpa mengubah format file.
+The data model is already prepared for this: it only needs a backend that
+sends status per `deviceId`/`linkId`, with no change to the file format.
 
 ---
 
-## Lisensi
+## License
 
-[MIT](LICENSE) — bebas dipakai, diubah, dan didistribusikan, termasuk untuk
-keperluan komersial. Yang diminta hanya satu: sertakan pemberitahuan hak cipta
-dan teks lisensinya. Perangkat lunak ini diberikan apa adanya, tanpa jaminan.
+[MIT](LICENSE) — free to use, modify, and distribute, including for commercial
+purposes. The only requirement is to include the copyright notice and the
+license text. The software is provided as is, without warranty.
 
-Seluruh dependensinya berlisensi permisif dan tidak bertentangan: MIT
-(React, React Flow, dagre, zustand, zod, Tailwind, Vite, Vitest, html-to-image),
-ISC (lucide-react), dan Apache-2.0 (TypeScript).
+All dependencies use permissive, compatible licenses: MIT (React, React Flow,
+dagre, zustand, zod, Tailwind, Vite, Vitest, html-to-image), ISC
+(lucide-react), and Apache-2.0 (TypeScript).
 
-### Catatan merek dagang
+### Trademark notice
 
-Nama vendor dan model perangkat di dalam katalog — Juniper, Huawei, MikroTik,
-ZTE, Cisco, Ubiquiti, TP-Link, FiberHome, BDCOM, V-SOL, C-Data, HTB — adalah
-merek dagang milik pemiliknya masing-masing, dipakai di sini semata sebagai
-acuan agar dokumentasi jaringan Anda sesuai perangkat yang nyata. Proyek ini
-tidak berafiliasi dengan, tidak didukung oleh, dan tidak disponsori oleh
-perusahaan mana pun di atas.
+The vendor and device model names in the catalog — Juniper, Huawei, MikroTik,
+ZTE, Cisco, Ubiquiti, TP-Link, FiberHome, BDCOM, V-SOL, C-Data, HTB — are
+trademarks of their respective owners, used here solely as references so your
+network documentation matches real hardware. This project is not affiliated
+with, endorsed by, or sponsored by any of the companies above.
