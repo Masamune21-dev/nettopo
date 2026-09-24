@@ -4,9 +4,15 @@ import { summarizeTrunk } from '@/lib/trunks'
 import type { Device, Endpoint, Topology } from '@/types/topology'
 import { downloadText } from './download'
 
-function cell(value: unknown): string {
-  const s = String(value ?? '')
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+/**
+ * Satu sel CSV. Nilai berawalan = + - @ (atau tab/CR) diawali petik tunggal
+ * supaya Excel/Sheets tidak menjalankannya sebagai rumus — isinya bisa berasal
+ * dari berkas JSON impor yang tidak dikenal.
+ */
+export function cell(value: unknown): string {
+  let s = String(value ?? '')
+  if (typeof value === 'string' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
 const toCsv = (rows: unknown[][]) => rows.map((r) => r.map(cell).join(',')).join('\n')

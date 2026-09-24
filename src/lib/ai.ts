@@ -6,6 +6,8 @@
  * browser maupun ikut ter-bundle.
  */
 
+import { AI_ACCESS_HEADER, AI_REASON_HEADER } from './aiGuard'
+
 export interface AiModel {
   id: string
   owned_by?: string
@@ -23,17 +25,49 @@ export class AiError extends Error {
 
 export const aiReady = (): boolean => __AI_READY__
 export const aiDefaultModel = (): string => __AI_DEFAULT_MODEL__
+/** Server mengatur AI_ACCESS_CODE, jadi pengguna perlu mengisi kode akses. */
+export const aiNeedsCode = (): boolean => __AI_NEEDS_CODE__
+
+const ACCESS_KEY = 'nettopo:ai-access'
+
+/** Kode akses yang tersimpan di browser ini (kosong kalau belum diisi). */
+export function getAccessCode(): string {
+  try {
+    return localStorage.getItem(ACCESS_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+export function setAccessCode(code: string): void {
+  try {
+    if (code) localStorage.setItem(ACCESS_KEY, code)
+    else localStorage.removeItem(ACCESS_KEY)
+  } catch {
+    /* tanpa penyimpanan, kode tetap harus diisi ulang tiap kali */
+  }
+}
+
+function accessHeaders(): Record<string, string> {
+  const code = getAccessCode()
+  return code ? { [AI_ACCESS_HEADER]: code } : {}
+}
 
 /** Ubah kegagalan HTTP jadi pesan yang bisa dimengerti pengguna. */
 async function toError(res: Response): Promise<AiError> {
-  let detail = ''
+  if (res.headers.get(AI_REASON_HEADER) === 'access-code') {
+    return new AiError('Kode akses salah atau belum diisi — isi kolom "Kode akses" di atas.', res.status)
+  }
+  // Baca sebagai teks dulu: badan hanya bisa dibaca sekali, dan halaman error
+  // HTML (502/504 dari gateway) tetap perlu ditampilkan kalau bukan JSON.
+  const raw = await res.text().catch(() => '')
+  let detail = raw.trim().slice(0, 300)
   try {
-    const body: unknown = await res.json()
-    const obj = body as { error?: { message?: string } | string; message?: string }
+    const obj = JSON.parse(raw) as { error?: { message?: string } | string; message?: string }
     detail =
-      (typeof obj.error === 'string' ? obj.error : obj.error?.message) ?? obj.message ?? ''
+      (typeof obj.error === 'string' ? obj.error : obj.error?.message) ?? obj.message ?? detail
   } catch {
-    detail = await res.text().catch(() => '')
+    /* bukan JSON — pakai teks mentahnya */
   }
 
   const hint =
@@ -51,7 +85,7 @@ async function toError(res: Response): Promise<AiError> {
 }
 
 export async function listModels(signal?: AbortSignal): Promise<AiModel[]> {
-  const res = await fetch('/ai/models', { signal })
+  const res = await fetch('/ai/models', { signal, headers: accessHeaders() })
   if (!res.ok) throw await toError(res)
   const body = (await res.json()) as { data?: AiModel[]; models?: AiModel[] }
   const list = body.data ?? body.models ?? []
@@ -81,6 +115,28 @@ interface ChunkShape {
 const pickContent = (obj: ChunkShape): string =>
   obj.choices?.[0]?.delta?.content ?? obj.choices?.[0]?.message?.content ?? ''
 
+/** Teks dari satu baris SSE (`data: {...}`); baris lain dan potongan rusak diabaikan. */
+function sseLineText(line: string): string {
+  if (!line.startsWith('data:')) return ''
+  const payload = line.slice(5).trim()
+  if (!payload || payload === '[DONE]') return ''
+  try {
+    return pickContent(JSON.parse(payload) as ChunkShape)
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * Pecah aliran SSE jadi baris utuh. Mengembalikan baris yang sudah lengkap dan
+ * sisa yang belum diakhiri pemisah baris. Menerima \n, \r\n, maupun \r.
+ */
+function splitSseLines(buffer: string): { lines: string[]; rest: string } {
+  const lines = buffer.split(/\r\n|\r|\n/)
+  const rest = lines.pop() ?? ''
+  return { lines, rest }
+}
+
 /**
  * Kirim percakapan dan kembalikan teks lengkapnya.
  *
@@ -100,7 +156,7 @@ export async function chat({
 }: ChatOptions): Promise<string> {
   const res = await fetch('/ai/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...accessHeaders() },
     signal,
     body: JSON.stringify({
       model,
@@ -134,23 +190,20 @@ export async function chat({
     if (done) break
     buffer += decoder.decode(value, { stream: true })
 
-    // Kejadian SSE dipisahkan baris kosong; potongan terakhir bisa belum utuh.
-    const events = buffer.split('\n\n')
-    buffer = events.pop() ?? ''
-
-    for (const event of events) {
-      for (const line of event.split('\n')) {
-        if (!line.startsWith('data:')) continue
-        const payload = line.slice(5).trim()
-        if (!payload || payload === '[DONE]') continue
-        try {
-          text += pickContent(JSON.parse(payload) as ChunkShape)
-        } catch {
-          // Potongan rusak diabaikan; sisanya tetap terbaca.
-        }
-      }
-    }
+    // Tiap baris `data:` berdiri sendiri; baris terakhir bisa belum utuh.
+    const { lines, rest } = splitSseLines(buffer)
+    buffer = rest
+    for (const line of lines) text += sseLineText(line)
     if (text) onChunk?.(text)
+  }
+
+  // Sebagian proxy menutup aliran tanpa baris kosong penutup — jangan sampai
+  // potongan terakhir hilang.
+  buffer += decoder.decode()
+  const tail = sseLineText(buffer)
+  if (tail) {
+    text += tail
+    onChunk?.(text)
   }
 
   if (!text) throw new AiError('Model tidak mengembalikan jawaban.')

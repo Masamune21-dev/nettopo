@@ -199,10 +199,13 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
     /* ── React Flow ─────────────────────────────────────────────────────── */
 
     onNodesChange: (changes) => {
-      // Simpan history sekali saja: saat drag selesai atau ukuran berubah selesai.
-      const endsDrag = changes.some((c) => c.type === 'position' && c.dragging === false)
-      if (endsDrag) {
-        const { nodes, edges, past } = get()
+      // Simpan history sekali saja, tepat saat drag DIMULAI — posisi sebelum
+      // digeser yang perlu dikembalikan oleh undo, bukan posisi akhirnya.
+      const { nodes, edges, past } = get()
+      const startsDrag = changes.some(
+        (c) => c.type === 'position' && c.dragging === true && !nodes.find((n) => n.id === c.id)?.dragging,
+      )
+      if (startsDrag) {
         set({ past: [...past, { nodes, edges }].slice(-HISTORY_LIMIT), future: [] })
       }
       const structural = changes.some((c) => c.type !== 'select' && c.type !== 'dimensions')
@@ -829,19 +832,22 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
       const { nodes } = get()
       const selected = nodes.filter((n) => n.selected)
       if (selected.length === 0) return
+      // Salinan yang sudah dibuat ikut dihitung, supaya dua MX204 yang
+      // diduplikasi bersamaan tidak sama-sama jadi MX204-03.
+      const taken: AppNode[] = [...nodes]
       const copies: AppNode[] = selected.map((n) => {
         const position = { x: n.position.x + 48, y: n.position.y + 48 }
         if (isDeviceNode(n)) {
           const portIdMap = new Map(n.data.ports.map((p) => [p.id, uid('p')]))
           const portCopies = n.data.ports.map((p) => ({ ...p, id: portIdMap.get(p.id) as string }))
-          return {
+          const copy = {
             ...n,
             id: uid('dev'),
             position,
             selected: false,
             data: {
               ...n.data,
-              hostname: autoHostname(n.data.modelId, nodes),
+              hostname: autoHostname(n.data.modelId, taken),
               ports: portCopies,
               trunks: n.data.trunks.map((t) => ({
                 ...t,
@@ -850,6 +856,8 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
               })),
             },
           } satisfies AppNode
+          taken.push(copy)
+          return copy
         }
         return { ...n, id: uid(n.type ?? 'node'), position, selected: false } as AppNode
       })

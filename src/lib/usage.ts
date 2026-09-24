@@ -18,7 +18,42 @@ export function deviceUsage(deviceId: string, trunks: Trunk[], edges: AppEdge[])
     if (e.source === deviceId && e.sourceHandle) handles.add(e.sourceHandle)
     if (e.target === deviceId && e.targetHandle) handles.add(e.targetHandle)
   }
+  return usageFromHandles(handles, trunks)
+}
 
+const handleIndex = new WeakMap<AppEdge[], Map<string, string>>()
+
+/**
+ * Handle terpakai milik satu perangkat sebagai string terurut — nilai primitif,
+ * jadi selector zustand hanya memicu render ulang node yang handle-nya berubah.
+ * Indeks seluruh perangkat dibangun sekali per array edges, bukan sekali per node.
+ */
+export function usedHandleKey(deviceId: string, edges: AppEdge[]): string {
+  let index = handleIndex.get(edges)
+  if (!index) {
+    const sets = new Map<string, Set<string>>()
+    const add = (device: string, handle: string | null | undefined) => {
+      if (!handle) return
+      let set = sets.get(device)
+      if (!set) sets.set(device, (set = new Set()))
+      set.add(handle)
+    }
+    for (const e of edges) {
+      add(e.source, e.sourceHandle)
+      add(e.target, e.targetHandle)
+    }
+    index = new Map([...sets].map(([device, set]) => [device, [...set].sort().join('\n')]))
+    handleIndex.set(edges, index)
+  }
+  return index.get(deviceId) ?? ''
+}
+
+/** Kebalikan usedHandleKey: kembalikan jadi DeviceUsage. */
+export function usageFromKey(key: string, trunks: Trunk[]): DeviceUsage {
+  return usageFromHandles(new Set(key ? key.split('\n') : []), trunks)
+}
+
+function usageFromHandles(handles: Set<string>, trunks: Trunk[]): DeviceUsage {
   const ports = new Set<string>()
   for (const handle of handles) {
     const trunk = trunks.find((t) => t.id === handle)

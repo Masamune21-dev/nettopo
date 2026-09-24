@@ -2,17 +2,46 @@ import { useReactFlow } from '@xyflow/react'
 import { AlertTriangle, Copy, Download, RefreshCw, Sparkles, StopCircle } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Dialog } from '@/components/Dialog'
-import { aiDefaultModel, aiReady, AiError, chat, extractJson, listModels, type AiModel } from '@/lib/ai'
+import {
+  aiDefaultModel,
+  aiNeedsCode,
+  aiReady,
+  AiError,
+  chat,
+  extractJson,
+  getAccessCode,
+  listModels,
+  setAccessCode,
+  type AiModel,
+} from '@/lib/ai'
 import { applyBuildPlan, applyTidyPlan } from '@/lib/aiApply'
 import { AI_TASKS, buildPlanSchema, getTask, type TaskId, tidyPlanSchema } from '@/lib/aiTasks'
 import { downloadText, slugify } from '@/lib/download'
 import { fitViewWhenReady } from '@/lib/fitView'
+import { uid } from '@/lib/id'
 import { toTopology } from '@/lib/serialize'
 import { useTopologyStore } from '@/store/useTopologyStore'
 import { useUiStore } from '@/store/useUiStore'
 import { isDeviceNode } from '@/store/types'
 
 const MODEL_KEY = 'nettopo:ai-model'
+
+// localStorage bisa melempar (mode privat Safari, penyimpanan diblokir).
+function readSavedModel(): string {
+  try {
+    return localStorage.getItem(MODEL_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function saveModel(model: string): void {
+  try {
+    localStorage.setItem(MODEL_KEY, model)
+  } catch {
+    /* abaikan — hanya kenyamanan */
+  }
+}
 
 function NotConfigured() {
   return (
@@ -44,13 +73,18 @@ function NotConfigured() {
 export function AiDialog() {
   const open = useUiStore((s) => s.aiOpen)
   const setUi = useUiStore((s) => s.set)
-  const store = useTopologyStore()
+  // Hanya angka ringkasan yang dipakai untuk render; isi lengkap store diambil
+  // saat tombol ditekan, supaya dialog tidak ikut render di tiap frame drag.
+  const deviceCount = useTopologyStore((s) => s.nodes.filter(isDeviceNode).length)
+  const linkCount = useTopologyStore((s) => s.edges.length)
+  const projectName = useTopologyStore((s) => s.projectName)
   const { fitView } = useReactFlow()
 
   const [taskId, setTaskId] = useState<TaskId>('audit')
   const [instruction, setInstruction] = useState('')
   const [models, setModels] = useState<AiModel[]>([])
   const [model, setModel] = useState('')
+  const [code, setCode] = useState(getAccessCode)
   const [loadingModels, setLoadingModels] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -69,7 +103,7 @@ export function AiDialog() {
       setModels(list)
       setModel((current) => {
         if (current && list.some((m) => m.id === current)) return current
-        const saved = localStorage.getItem(MODEL_KEY) ?? ''
+        const saved = readSavedModel()
         if (saved && list.some((m) => m.id === saved)) return saved
         const preset = aiDefaultModel()
         if (preset && list.some((m) => m.id === preset)) return preset
@@ -87,7 +121,7 @@ export function AiDialog() {
   }, [open, ready, models.length, refreshModels])
 
   useEffect(() => {
-    if (model) localStorage.setItem(MODEL_KEY, model)
+    if (model) saveModel(model)
   }, [model])
 
   if (!open) return null
@@ -95,9 +129,6 @@ export function AiDialog() {
     abort.current?.abort()
     setUi('aiOpen', false)
   }
-
-  const deviceCount = store.nodes.filter(isDeviceNode).length
-  const meta = { projectId: store.projectId, projectName: store.projectName, site: store.site }
 
   const run = async () => {
     if (!model) {
@@ -120,6 +151,8 @@ export function AiDialog() {
     abort.current = new AbortController()
 
     try {
+      const store = useTopologyStore.getState()
+      const meta = { projectId: store.projectId, projectName: store.projectName, site: store.site }
       const topo = toTopology(meta, store.nodes, store.edges)
       const answer = await chat({
         model,
@@ -142,7 +175,9 @@ export function AiDialog() {
       if (taskId === 'tidy') {
         const parsed = tidyPlanSchema.safeParse(raw)
         if (!parsed.success) throw new AiError(`Rencana dari AI tidak sesuai bentuk: ${parsed.error.issues[0]?.message}`)
-        const applied = applyTidyPlan(parsed.data, store.nodes, store.edges)
+        // Ambil keadaan terbaru: selama menunggu jawaban, kanvas bisa sudah berubah.
+        const now = useTopologyStore.getState()
+        const applied = applyTidyPlan(parsed.data, now.nodes, now.edges)
         store.setNodesEdges(applied.nodes, applied.edges)
         setWarnings(applied.warnings)
         setResult(
@@ -153,13 +188,24 @@ export function AiDialog() {
         const parsed = buildPlanSchema.safeParse(raw)
         if (!parsed.success) throw new AiError(`Rancangan dari AI tidak sesuai bentuk: ${parsed.error.issues[0]?.message}`)
         const applied = applyBuildPlan(parsed.data)
-        store.setNodesEdges(applied.nodes, applied.edges)
-        store.setProjectMeta({ projectName: parsed.data.name, site: parsed.data.site })
+        // Rancangan baru jadi proyek baru, bukan menimpa proyek yang sedang
+        // dibuka — proyek lama tetap ada di menu Buka (disimpan otomatis).
+        store.replaceAll({
+          nodes: applied.nodes,
+          edges: applied.edges,
+          projectId: uid('prj'),
+          projectName: parsed.data.name,
+          site: parsed.data.site,
+        })
+        // Tandai belum tersimpan supaya proyek baru ini ikut disimpan otomatis.
+        store.setProjectMeta({})
         setWarnings(applied.warnings)
         setResult(
           `Dibuat: ${applied.nodes.filter(isDeviceNode).length} perangkat, ${applied.edges.length} link.\n\n${parsed.data.catatan}`,
         )
         void fitViewWhenReady(fitView, { padding: 0.18, duration: 400 })
+        store.pushToast('Rancangan AI dibuat sebagai proyek baru — proyek sebelumnya ada di menu Buka.', 'ok')
+        return
       }
       store.pushToast('Hasil AI diterapkan — tekan Cmd/Ctrl+Z kalau mau dibatalkan.', 'ok')
     } catch (e) {
@@ -202,8 +248,38 @@ export function AiDialog() {
           </div>
           <p className="text-[11px]" style={{ color: 'var(--muted)' }}>
             {task.blurb}
-            {task.needsTopology ? ` · memakai ${deviceCount} perangkat & ${store.edges.length} link yang ada` : ''}
+            {task.needsTopology ? ` · memakai ${deviceCount} perangkat & ${linkCount} link yang ada` : ''}
           </p>
+
+          {/* Kode akses — hanya kalau server mengatur AI_ACCESS_CODE */}
+          {aiNeedsCode() ? (
+            <form
+              className="flex items-end gap-1.5"
+              onSubmit={(e) => {
+                e.preventDefault()
+                setAccessCode(code.trim())
+                void refreshModels()
+              }}
+            >
+              <div className="min-w-0 flex-1">
+                <label className="label" htmlFor="ai-access">
+                  Kode akses
+                </label>
+                <input
+                  id="ai-access"
+                  type="password"
+                  className="field"
+                  autoComplete="off"
+                  placeholder="Diberikan oleh pengelola aplikasi ini"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                />
+              </div>
+              <button type="submit" className="btn px-2 py-1 text-[11.5px]">
+                Simpan
+              </button>
+            </form>
+          ) : null}
 
           {/* Model */}
           <div className="flex items-end gap-1.5">
@@ -273,7 +349,7 @@ export function AiDialog() {
                   type="button"
                   className="btn"
                   onClick={() =>
-                    downloadText(result, `${slugify(store.projectName)}-${taskId}.md`, 'text/markdown')
+                    downloadText(result, `${slugify(projectName)}-${taskId}.md`, 'text/markdown')
                   }
                 >
                   <Download size={13} /> Unduh
@@ -284,6 +360,7 @@ export function AiDialog() {
 
           {error ? (
             <div
+              role="alert"
               className="rounded-md border px-2.5 py-2 text-[11.5px]"
               style={{ borderColor: '#ef4444', background: '#ef444414' }}
             >
@@ -296,8 +373,8 @@ export function AiDialog() {
               className="space-y-1 rounded-md border px-2.5 py-2 text-[11px]"
               style={{ borderColor: '#f59e0b', background: '#f59e0b10' }}
             >
-              {warnings.map((w) => (
-                <li key={w} className="flex items-start gap-1.5">
+              {warnings.map((w, i) => (
+                <li key={i} className="flex items-start gap-1.5">
                   <AlertTriangle size={12} className="mt-px shrink-0" style={{ color: '#f59e0b' }} />
                   <span>{w}</span>
                 </li>

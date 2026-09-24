@@ -5,7 +5,7 @@ import { RoleIcon } from '@/components/ui/RoleIcon'
 import { getModel, VENDOR_META } from '@/data/deviceCatalog'
 import { ifaceBadge, ifaceSummary } from '@/lib/iface'
 import { summarizeTrunk } from '@/lib/trunks'
-import { deviceUsage } from '@/lib/usage'
+import { usageFromKey, usedHandleKey } from '@/lib/usage'
 import { useTopologyStore } from '@/store/useTopologyStore'
 import type { DeviceNode as DeviceNodeType } from '@/store/types'
 import { PORT_MODE_COLOR, ROLE_COLOR, SPEED_COLOR, type Port, type Trunk } from '@/types/topology'
@@ -94,7 +94,9 @@ function TrunkRow({
 }
 
 function DeviceNodeInner({ id, data, selected }: NodeProps<DeviceNodeType>) {
-  const edges = useTopologyStore((s) => s.edges)
+  // Hanya handle milik node ini yang diamati, supaya mengubah satu link (atau
+  // memilihnya) tidak me-render ulang semua perangkat di kanvas.
+  const handleKey = useTopologyStore((s) => usedHandleKey(id, s.edges))
   const toggleExpanded = useTopologyStore((s) => s.toggleExpanded)
   const updateNodeInternals = useUpdateNodeInternals()
 
@@ -102,7 +104,7 @@ function DeviceNodeInner({ id, data, selected }: NodeProps<DeviceNodeType>) {
   const accent = ROLE_COLOR[data.role]
   const vendor = model ? VENDOR_META[model.vendor] : undefined
 
-  const usage = useMemo(() => deviceUsage(id, data.trunks, edges), [edges, id, data.trunks])
+  const usage = useMemo(() => usageFromKey(handleKey, data.trunks), [handleKey, data.trunks])
   const usedIds = usage.handles
 
   // Port yang sudah masuk trunk tidak ditampilkan sendiri — diwakili trunk-nya.

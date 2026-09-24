@@ -51,6 +51,11 @@ function Workspace() {
         projectName: s.name,
         site: s.site,
       })
+      if (id) {
+        useTopologyStore
+          .getState()
+          .pushToast('Topologi terakhir tidak bisa dibaca — contoh dimuat. Coba buka dari menu Buka.', 'warn')
+      }
     }
 
     // StrictMode memanggil efek dua kali — pemuatan hanya boleh sekali.

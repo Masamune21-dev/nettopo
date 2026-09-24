@@ -26,7 +26,8 @@ import { fitViewWhenReady } from '@/lib/fitView'
 import { downloadText, slugify } from '@/lib/download'
 import { exportPng, exportSvg } from '@/lib/exportImage'
 import type { AlignMode, DistributeMode, LayoutDirection } from '@/lib/layout'
-import { saveProject } from '@/lib/persistence'
+import { uid } from '@/lib/id'
+import { listProjects, saveProject } from '@/lib/persistence'
 import { fromTopology, parseTopology, toTopology } from '@/lib/serialize'
 import { useTopologyStore } from '@/store/useTopologyStore'
 import { useUiStore } from '@/store/useUiStore'
@@ -190,8 +191,18 @@ export function Toolbar() {
       return
     }
     const { nodes, edges, meta: m } = fromTopology(parsed.data)
+    // Berkas lama dari proyek yang masih dipakai membawa id yang sama; kalau
+    // dipakai apa adanya, simpan otomatis berikutnya menimpa versi terbaru.
+    const taken = m.projectId === store.projectId || listProjects().some((p) => p.id === m.projectId)
+    if (taken) m.projectId = uid('prj')
     store.replaceAll({ nodes, edges, ...m })
     store.pushToast(`"${m.projectName}" dimuat — ${nodes.length} objek.`, 'ok')
+    if (parsed.fixes.length > 0) {
+      store.pushToast(
+        `${parsed.fixes.length} rujukan rusak di berkas dibuang, mis.: ${parsed.fixes[0]}`,
+        'warn',
+      )
+    }
     fitSoon()
   }
 

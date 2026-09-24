@@ -81,19 +81,21 @@ export function applyBuildPlan(plan: BuildPlan): ApplyResult {
   const byHost = new Map<string, { id: string; data: DeviceNodeData }>()
 
   for (const d of plan.devices) {
+    // Kunci pencarian link memakai hostname yang di-trim; simpan dengan bentuk sama.
+    const hostname = d.hostname.trim()
     const model = getModel(d.modelId)
     if (!model) {
-      warnings.push(`Model "${d.modelId}" untuk ${d.hostname} tidak ada di katalog — perangkat dilewati.`)
+      warnings.push(`Model "${d.modelId}" untuk ${hostname} tidak ada di katalog — perangkat dilewati.`)
       continue
     }
-    if (byHost.has(d.hostname.toLowerCase())) {
-      warnings.push(`Hostname "${d.hostname}" muncul dua kali — yang kedua dilewati.`)
+    if (byHost.has(hostname.toLowerCase())) {
+      warnings.push(`Hostname "${hostname}" muncul dua kali — yang kedua dilewati.`)
       continue
     }
     const ports = buildPorts(model)
     const data: DeviceNodeData = {
       modelId: d.modelId,
-      hostname: d.hostname,
+      hostname,
       role: model.role,
       mgmtIp: d.mgmtIp,
       loopback: '',
@@ -104,7 +106,7 @@ export function applyBuildPlan(plan: BuildPlan): ApplyResult {
       expanded: ports.length <= 16,
     }
     const id = uid('dev')
-    byHost.set(d.hostname.toLowerCase(), { id, data })
+    byHost.set(hostname.toLowerCase(), { id, data })
     nodes.push({ id, type: 'device', position: { x: 0, y: 0 }, data })
   }
 

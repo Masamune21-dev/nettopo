@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { type ReactNode, useEffect, useRef } from 'react'
 
 export function Dialog({
   title,
@@ -12,6 +12,19 @@ export function Dialog({
   children: ReactNode
   width?: number
 }) {
+  const closeRef = useRef(onClose)
+  useEffect(() => {
+    closeRef.current = onClose
+  })
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeRef.current()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   return (
     <div
       className="fixed inset-0 z-[90] flex items-center justify-center bg-black/40 p-4"
@@ -31,7 +44,7 @@ export function Dialog({
           style={{ borderColor: 'var(--border)' }}
         >
           <h2 className="text-[13px] font-semibold">{title}</h2>
-          <button type="button" className="btn border-0 px-1 py-0.5" onClick={onClose}>
+          <button type="button" className="btn border-0 px-1 py-0.5" onClick={onClose} aria-label="Tutup">
             <X size={14} />
           </button>
         </div>
