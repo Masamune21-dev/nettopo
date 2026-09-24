@@ -36,7 +36,11 @@ export function listProjects(): ProjectListItem[] {
   if (!raw) return []
   try {
     const parsed: unknown = JSON.parse(raw)
-    return Array.isArray(parsed) ? (parsed as ProjectListItem[]) : []
+    if (!Array.isArray(parsed)) return []
+    // Entri rusak (null, tanpa id) dibuang supaya daftar tetap bisa dipakai.
+    return parsed.filter(
+      (p): p is ProjectListItem => typeof p === 'object' && p !== null && typeof p.id === 'string',
+    )
   } catch {
     return []
   }

@@ -162,8 +162,75 @@ export function fromTopology(t: Topology): {
   }
 }
 
+/**
+ * Buang rujukan yang tidak bisa dipakai kanvas: id ganda, link ke perangkat,
+ * port, atau trunk yang tidak ada, anggota trunk yang hilang, dan parentId ke
+ * grup yang tidak ada. Skema zod hanya memeriksa bentuk, bukan rujukan — tanpa
+ * ini berkas yang disunting tangan bisa memuat link yang tak tergambar dan tak
+ * bisa dihapus, atau dua perangkat yang ikut berubah bersamaan.
+ */
+export function repairTopology(t: Topology): { data: Topology; fixes: string[] } {
+  const fixes: string[] = []
+  const seen = new Set<string>()
+  const unique = <T extends { id: string }>(items: T[], what: string): T[] =>
+    items.filter((item) => {
+      if (seen.has(item.id)) {
+        fixes.push(`${what} dengan id ganda "${item.id}" dibuang.`)
+        return false
+      }
+      seen.add(item.id)
+      return true
+    })
+
+  const groups = unique(t.groups, 'Grup')
+  const groupIds = new Set(groups.map((g) => g.id))
+
+  const devices = unique(t.devices, 'Perangkat').map((d) => {
+    const portIds = new Set<string>()
+    const ports = d.ports.filter((p) => {
+      if (portIds.has(p.id)) return false
+      portIds.add(p.id)
+      return true
+    })
+    if (ports.length !== d.ports.length) fixes.push(`${d.hostname}: port dengan id ganda dibuang.`)
+
+    const trunks = d.trunks.map((tr) => {
+      const memberIds = [...new Set(tr.memberIds)].filter((id) => portIds.has(id))
+      if (memberIds.length !== tr.memberIds.length) {
+        fixes.push(`${d.hostname}: anggota ${tr.name} yang tidak ada dibuang.`)
+      }
+      return { ...tr, memberIds }
+    })
+
+    let parentId = d.parentId
+    if (parentId && !groupIds.has(parentId)) {
+      fixes.push(`${d.hostname}: grup induk "${parentId}" tidak ada — dilepas dari grup.`)
+      parentId = null
+    }
+    return { ...d, ports, trunks, parentId }
+  })
+
+  const notes = unique(t.notes, 'Catatan')
+
+  const byId = new Map(devices.map((d) => [d.id, d]))
+  const endpointOk = (e: Topology['links'][number]['a']): boolean => {
+    const d = byId.get(e.deviceId)
+    if (!d) return false
+    return e.trunkId ? d.trunks.some((tr) => tr.id === e.trunkId) : d.ports.some((p) => p.id === e.portId)
+  }
+  const links = unique(t.links, 'Link').filter((l) => {
+    if (endpointOk(l.a) && endpointOk(l.b)) return true
+    fixes.push(`Link "${l.id}" menunjuk perangkat, port, atau trunk yang tidak ada — dibuang.`)
+    return false
+  })
+
+  return { data: { ...t, groups, devices, notes, links }, fixes }
+}
+
 /** Parse + validasi file JSON dari pengguna. Pesan error dibuat agar mudah dibaca. */
-export function parseTopology(raw: string): { ok: true; data: Topology } | { ok: false; error: string } {
+export function parseTopology(
+  raw: string,
+): { ok: true; data: Topology; fixes: string[] } | { ok: false; error: string } {
   let json: unknown
   try {
     json = JSON.parse(raw)
@@ -181,5 +248,5 @@ export function parseTopology(raw: string): { ok: true; data: Topology } | { ok:
         : ''
     return { ok: false, error: `Isi file tidak sesuai skema pada "${path}": ${first?.message ?? '-'}.${hint}` }
   }
-  return { ok: true, data: parsed.data }
+  return { ok: true, ...repairTopology(parsed.data) }
 }

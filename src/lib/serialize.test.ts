@@ -187,3 +187,41 @@ describe('parseTopology', () => {
     if (!r.ok) expect(r.error).toContain('devices.0.position')
   })
 })
+
+describe('repairTopology', () => {
+  it('berkas yang sehat tidak diubah', () => {
+    const { nodes, edges } = fixture()
+    const parsed = parseTopology(JSON.stringify(toTopology(meta, nodes, edges)))
+    expect(parsed.ok && parsed.fixes).toEqual([])
+  })
+
+  it('membuang id ganda, link yatim, anggota trunk hilang, dan parentId tak dikenal', () => {
+    const { nodes, edges } = fixture()
+    const topo = toTopology(meta, nodes, edges)
+    const dev = topo.devices[0]!
+    const broken = {
+      ...topo,
+      devices: [
+        {
+          ...dev,
+          parentId: 'grp-hilang',
+          trunks: [{ ...(dev.trunks[0] ?? {}), id: 't1', name: 'ae0', memberIds: [dev.ports[0]!.id, 'p-hilang'] }],
+        },
+        topo.devices[1]!,
+        { ...topo.devices[1]!, hostname: 'KEMBAR' },
+      ],
+      links: [
+        ...topo.links,
+        { ...topo.links[0]!, id: 'l-yatim', b: { ...topo.links[0]!.b, deviceId: 'dev-hilang' } },
+      ],
+    }
+    const parsed = parseTopology(JSON.stringify(broken))
+    expect(parsed.ok).toBe(true)
+    if (!parsed.ok) return
+    expect(parsed.data.devices.map((d) => d.hostname)).not.toContain('KEMBAR')
+    expect(parsed.data.devices[0]?.parentId).toBeNull()
+    expect(parsed.data.devices[0]?.trunks[0]?.memberIds).toEqual([dev.ports[0]!.id])
+    expect(parsed.data.links.map((l) => l.id)).toEqual(topo.links.map((l) => l.id))
+    expect(parsed.fixes).toHaveLength(4)
+  })
+})

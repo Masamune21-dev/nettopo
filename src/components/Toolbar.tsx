@@ -197,6 +197,12 @@ export function Toolbar() {
     if (taken) m.projectId = uid('prj')
     store.replaceAll({ nodes, edges, ...m })
     store.pushToast(`"${m.projectName}" dimuat — ${nodes.length} objek.`, 'ok')
+    if (parsed.fixes.length > 0) {
+      store.pushToast(
+        `${parsed.fixes.length} rujukan rusak di berkas dibuang, mis.: ${parsed.fixes[0]}`,
+        'warn',
+      )
+    }
     fitSoon()
   }
 
