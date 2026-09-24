@@ -12,7 +12,9 @@ function frame(nodes: Node[]) {
   const bounds = getNodesBounds(nodes)
   const width = Math.max(480, Math.ceil(bounds.width) + PADDING * 2)
   const height = Math.max(360, Math.ceil(bounds.height) + PADDING * 2)
-  const vp = getViewportForBounds(bounds, width, height, 0.2, 2, PADDING / 2)
+  // Padding harus bersatuan 'px': angka polos dibaca xyflow sebagai rasio
+  // (30 = 3000%), sehingga diagram jadi kecil sekali di tengah gambar.
+  const vp = getViewportForBounds(bounds, width, height, 0.2, 2, `${PADDING / 2}px`)
   return { width, height, vp }
 }
 
