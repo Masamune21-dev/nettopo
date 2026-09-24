@@ -172,7 +172,7 @@ Aturan:
   {
     id: 'build',
     label: 'Buat dari deskripsi',
-    blurb: 'Tulis rancangan jaringan dengan kalimat, perangkat & link dibuatkan',
+    blurb: 'Tulis rancangan jaringan dengan kalimat, perangkat & link dibuatkan sebagai proyek baru',
     output: 'json',
     needsTopology: false,
     placeholder:

@@ -269,7 +269,7 @@ masuk `.gitignore`. Browser hanya memanggil `/ai/...` di localhost.
 | **Audit & saran** | Daftar temuan bertingkat keparahan: titik tunggal kegagalan, jalur cadangan yang tidak terpisah, kapasitas tak seimbang, penamaan tak konsisten |
 | **Dokumentasi jaringan** | Dokumen Markdown: arsitektur, tabel perangkat, tabel sambungan, rancangan VLAN |
 | **Rapikan gambar** | AI menentukan pengelompokan dan arah; penempatan piksel tetap dikerjakan algoritma |
-| **Buat dari deskripsi** | Tulis rancangan dengan kalimat, perangkat dan link dibuatkan dari katalog |
+| **Buat dari deskripsi** | Tulis rancangan dengan kalimat, perangkat dan link dibuatkan dari katalog sebagai proyek baru (proyek yang sedang dibuka tidak ditimpa) |
 
 Endpoint yang membalas dalam bentuk aliran SSE maupun satu objek JSON
 sama-sama didukung; untuk keluaran panjang, teksnya tampil bertahap sambil

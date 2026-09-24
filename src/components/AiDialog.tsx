@@ -7,12 +7,30 @@ import { applyBuildPlan, applyTidyPlan } from '@/lib/aiApply'
 import { AI_TASKS, buildPlanSchema, getTask, type TaskId, tidyPlanSchema } from '@/lib/aiTasks'
 import { downloadText, slugify } from '@/lib/download'
 import { fitViewWhenReady } from '@/lib/fitView'
+import { uid } from '@/lib/id'
 import { toTopology } from '@/lib/serialize'
 import { useTopologyStore } from '@/store/useTopologyStore'
 import { useUiStore } from '@/store/useUiStore'
 import { isDeviceNode } from '@/store/types'
 
 const MODEL_KEY = 'nettopo:ai-model'
+
+// localStorage bisa melempar (mode privat Safari, penyimpanan diblokir).
+function readSavedModel(): string {
+  try {
+    return localStorage.getItem(MODEL_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function saveModel(model: string): void {
+  try {
+    localStorage.setItem(MODEL_KEY, model)
+  } catch {
+    /* abaikan — hanya kenyamanan */
+  }
+}
 
 function NotConfigured() {
   return (
@@ -69,7 +87,7 @@ export function AiDialog() {
       setModels(list)
       setModel((current) => {
         if (current && list.some((m) => m.id === current)) return current
-        const saved = localStorage.getItem(MODEL_KEY) ?? ''
+        const saved = readSavedModel()
         if (saved && list.some((m) => m.id === saved)) return saved
         const preset = aiDefaultModel()
         if (preset && list.some((m) => m.id === preset)) return preset
@@ -87,7 +105,7 @@ export function AiDialog() {
   }, [open, ready, models.length, refreshModels])
 
   useEffect(() => {
-    if (model) localStorage.setItem(MODEL_KEY, model)
+    if (model) saveModel(model)
   }, [model])
 
   if (!open) return null
@@ -142,7 +160,9 @@ export function AiDialog() {
       if (taskId === 'tidy') {
         const parsed = tidyPlanSchema.safeParse(raw)
         if (!parsed.success) throw new AiError(`Rencana dari AI tidak sesuai bentuk: ${parsed.error.issues[0]?.message}`)
-        const applied = applyTidyPlan(parsed.data, store.nodes, store.edges)
+        // Ambil keadaan terbaru: selama menunggu jawaban, kanvas bisa sudah berubah.
+        const now = useTopologyStore.getState()
+        const applied = applyTidyPlan(parsed.data, now.nodes, now.edges)
         store.setNodesEdges(applied.nodes, applied.edges)
         setWarnings(applied.warnings)
         setResult(
@@ -153,13 +173,24 @@ export function AiDialog() {
         const parsed = buildPlanSchema.safeParse(raw)
         if (!parsed.success) throw new AiError(`Rancangan dari AI tidak sesuai bentuk: ${parsed.error.issues[0]?.message}`)
         const applied = applyBuildPlan(parsed.data)
-        store.setNodesEdges(applied.nodes, applied.edges)
-        store.setProjectMeta({ projectName: parsed.data.name, site: parsed.data.site })
+        // Rancangan baru jadi proyek baru, bukan menimpa proyek yang sedang
+        // dibuka — proyek lama tetap ada di menu Buka (disimpan otomatis).
+        store.replaceAll({
+          nodes: applied.nodes,
+          edges: applied.edges,
+          projectId: uid('prj'),
+          projectName: parsed.data.name,
+          site: parsed.data.site,
+        })
+        // Tandai belum tersimpan supaya proyek baru ini ikut disimpan otomatis.
+        store.setProjectMeta({})
         setWarnings(applied.warnings)
         setResult(
           `Dibuat: ${applied.nodes.filter(isDeviceNode).length} perangkat, ${applied.edges.length} link.\n\n${parsed.data.catatan}`,
         )
         void fitViewWhenReady(fitView, { padding: 0.18, duration: 400 })
+        store.pushToast('Rancangan AI dibuat sebagai proyek baru — proyek sebelumnya ada di menu Buka.', 'ok')
+        return
       }
       store.pushToast('Hasil AI diterapkan — tekan Cmd/Ctrl+Z kalau mau dibatalkan.', 'ok')
     } catch (e) {
@@ -284,6 +315,7 @@ export function AiDialog() {
 
           {error ? (
             <div
+              role="alert"
               className="rounded-md border px-2.5 py-2 text-[11.5px]"
               style={{ borderColor: '#ef4444', background: '#ef444414' }}
             >
@@ -296,8 +328,8 @@ export function AiDialog() {
               className="space-y-1 rounded-md border px-2.5 py-2 text-[11px]"
               style={{ borderColor: '#f59e0b', background: '#f59e0b10' }}
             >
-              {warnings.map((w) => (
-                <li key={w} className="flex items-start gap-1.5">
+              {warnings.map((w, i) => (
+                <li key={i} className="flex items-start gap-1.5">
                   <AlertTriangle size={12} className="mt-px shrink-0" style={{ color: '#f59e0b' }} />
                   <span>{w}</span>
                 </li>
