@@ -28,6 +28,9 @@ export function useShortcuts(): void {
       }
 
       if (inEditable(e.target)) return
+      // Saat dialog terbuka, tombol seperti Delete tidak boleh menyentuh kanvas
+      // di belakangnya. Escape ditangani dialog itu sendiri.
+      if (document.querySelector('[role="dialog"]')) return
 
       if (mod && e.key.toLowerCase() === 'z') {
         e.preventDefault()
