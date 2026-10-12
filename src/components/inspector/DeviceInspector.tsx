@@ -1,15 +1,21 @@
+import { SquareTerminal } from 'lucide-react'
 import { RoleIcon } from '@/components/ui/RoleIcon'
 import { DEVICE_CATALOG, getModel, VENDOR_META } from '@/data/deviceCatalog'
+import { DIALECT_LABEL, dialectIdFor } from '@/lib/cli'
+import { useConsoleStore } from '@/store/useConsoleStore'
 import { useTopologyStore } from '@/store/useTopologyStore'
 import type { DeviceNode } from '@/store/types'
 import { ROLE_COLOR, ROLE_LABEL, ROLES } from '@/types/topology'
 import { PortTable } from './PortTable'
+import { StaticRoutes } from './StaticRoutes'
 
 export function DeviceInspector({ device }: { device: DeviceNode }) {
   const updateDevice = useTopologyStore((s) => s.updateDevice)
   const changeModel = useTopologyStore((s) => s.changeModel)
+  const openConsole = useConsoleStore((s) => s.openFor)
   const model = getModel(device.data.modelId)
   const accent = ROLE_COLOR[device.data.role]
+  const dialect = dialectIdFor(model, device.data.role)
 
   return (
     <div className="space-y-3.5">
@@ -20,12 +26,22 @@ export function DeviceInspector({ device }: { device: DeviceNode }) {
         >
           <RoleIcon role={device.data.role} size={15} />
         </span>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="truncate text-[13px] font-semibold">{device.data.hostname}</div>
           <div className="truncate text-[10.5px]" style={{ color: 'var(--muted)' }}>
             {model ? `${VENDOR_META[model.vendor].label} ${model.model}` : device.data.modelId}
           </div>
         </div>
+        {dialect ? (
+          <button
+            type="button"
+            className="btn shrink-0 px-1.5 py-1 text-[11px]"
+            onClick={() => openConsole(device.id)}
+            title={`Buka CLI ${DIALECT_LABEL[dialect]} (atau klik ganda perangkat di kanvas)`}
+          >
+            <SquareTerminal size={12} /> CLI
+          </button>
+        ) : null}
       </header>
 
       <div>
@@ -131,6 +147,8 @@ export function DeviceInspector({ device }: { device: DeviceNode }) {
           onChange={(e) => updateDevice(device.id, { notes: e.target.value })}
         />
       </div>
+
+      {dialect ? <StaticRoutes device={device} /> : null}
 
       <PortTable device={device} />
     </div>

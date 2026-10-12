@@ -10,6 +10,9 @@ import { useTopologyStore } from '@/store/useTopologyStore'
 import type { DeviceNode as DeviceNodeType } from '@/store/types'
 import { PORT_MODE_COLOR, ROLE_COLOR, SPEED_COLOR, type Port, type Trunk } from '@/types/topology'
 
+/** Warna port yang dimatikan dengan `shutdown`. */
+const SHUT_COLOR = '#ef4444'
+
 /** Badge kecil penanda link-type: A100 (access), T (trunk), H (hybrid), L3. */
 function ModeBadge({ config }: { config: Parameters<typeof ifaceBadge>[0] }) {
   const text = ifaceBadge(config)
@@ -35,13 +38,19 @@ function PortRow({ port, used, align }: { port: Port; used: boolean; align: 'lef
         type="source"
         position={align === 'left' ? Position.Left : Position.Right}
         className={`port-handle${used ? ' is-used' : ''}`}
-        style={{ background: used ? SPEED_COLOR[port.speed] : 'var(--panel-2)' }}
-        title={`${port.name} · ${port.speed} · ${port.media}${cfg ? ` · ${cfg}` : ''}${port.description ? ` · ${port.description}` : ''}`}
+        style={{
+          background: used ? SPEED_COLOR[port.speed] : 'var(--panel-2)',
+          ...(port.shutdown ? { borderColor: SHUT_COLOR } : {}),
+        }}
+        title={`${port.name} · ${port.speed} · ${port.media}${cfg ? ` · ${cfg}` : ''}${port.description ? ` · ${port.description}` : ''}${port.shutdown ? ' · shutdown' : ''}`}
       />
       <span
         className="truncate font-mono text-[10px] leading-none"
-        style={{ color: used ? 'var(--text)' : 'var(--muted)' }}
-        title={port.description || port.name}
+        style={{
+          color: port.shutdown ? SHUT_COLOR : used ? 'var(--text)' : 'var(--muted)',
+          textDecoration: port.shutdown ? 'line-through' : undefined,
+        }}
+        title={port.shutdown ? `${port.name} di-shutdown` : port.description || port.name}
       >
         {port.name}
       </span>
@@ -80,7 +89,10 @@ function TrunkRow({
       />
       <span className={`flex min-w-0 flex-col ${align === 'right' ? 'items-end' : 'items-start'}`}>
         <span className="flex items-center gap-1">
-          <span className="truncate font-mono text-[10px] font-semibold leading-none" style={{ color }}>
+          <span
+            className="truncate font-mono text-[10px] font-semibold leading-none"
+            style={{ color: trunk.shutdown ? SHUT_COLOR : color, textDecoration: trunk.shutdown ? 'line-through' : undefined }}
+          >
             {trunk.name}
           </span>
           <ModeBadge config={trunk} />

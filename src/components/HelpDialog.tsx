@@ -10,7 +10,8 @@ const SHORTCUTS: [string, string][] = [
   [`Shift ${mod} Z`, 'Redo'],
   [`${mod} D`, 'Duplikat yang terpilih'],
   ['Delete / Backspace', 'Hapus yang terpilih'],
-  ['Klik kanan', 'Menu tambah area / catatan'],
+  ['Klik ganda perangkat', 'Buka CLI perangkat (seperti Packet Tracer)'],
+  ['Klik kanan', 'Menu tambah area / catatan, atau Buka CLI'],
   ['Scroll', 'Geser kanvas · ⌥/Alt + scroll untuk zoom'],
   ['Drag kiri', 'Seleksi kotak'],
   ['Drag tengah / kanan', 'Geser kanvas'],
@@ -39,6 +40,28 @@ export function HelpDialog() {
           </li>
           <li>Selesai? Tekan Simpan, lalu Ekspor ke PNG/SVG untuk laporan atau JSON untuk cadangan.</li>
         </ol>
+      </section>
+
+      <section className="mb-4">
+        <h3 className="mb-1.5 text-[12px] font-semibold">CLI perangkat</h3>
+        <ul className="list-disc space-y-1 pl-4 text-[12px] leading-relaxed" style={{ color: 'var(--muted)' }}>
+          <li>
+            Klik ganda perangkat untuk membuka konsolnya. Dialek mengikuti OS: Huawei VRP, Juniper Junos, MikroTik
+            RouterOS, Cisco IOS, atau shell Linux untuk server/CPE.
+          </li>
+          <li>
+            Perintah konfigurasi (VLAN, IP, Eth-Trunk, shutdown, rute statis, hostname) langsung mengubah topologi
+            dan bisa di-undo. Junos dan VRP8 (NE/CloudEngine) menunggu <code>commit</code>.
+          </li>
+          <li>
+            <code>ping</code> dan <code>tracert</code>/<code>traceroute</code> disimulasikan lewat kabel, VLAN,
+            dan tabel routing — hanya rute terhubung langsung dan rute statis, tanpa OSPF/BGP.
+          </li>
+          <li>
+            Di konsol: <code>?</code> bantuan, Tab melengkapi, ↑/↓ riwayat, Ctrl+C hentikan ping, Ctrl+L bersihkan
+            layar.
+          </li>
+        </ul>
       </section>
 
       <section>

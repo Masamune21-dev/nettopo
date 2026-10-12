@@ -28,6 +28,7 @@ function dev(id: string, x: number, y: number, modelId = 'mikrotik-crs309-1g-8sp
       notes: '',
       ports: buildPorts(getModel(modelId)!),
       trunks: [],
+      staticRoutes: [],
       expanded: true,
     },
   }

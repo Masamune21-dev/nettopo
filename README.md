@@ -11,6 +11,11 @@ bond (MikroTik) — lengkap dengan daftar port anggotanya, serta **VLAN dan
 link-type per interface** (access / trunk / hybrid / routed) seperti di
 perangkat aslinya.
 
+Setiap perangkat juga punya **CLI sendiri seperti di Packet Tracer** — klik
+ganda untuk membuka konsol Huawei VRP, Junos, RouterOS, atau Cisco IOS, ubah
+VLAN/IP/trunk dengan perintah aslinya, lalu `ping` dan `tracert` lewat kabel
+yang tergambar. Lihat [CLI perangkat](#cli-perangkat-seperti-packet-tracer).
+
 Semua data disimpan di browser Anda sendiri (tidak ada server, tidak ada login),
 dan bisa diekspor ke JSON, PNG, SVG, atau CSV.
 
@@ -234,9 +239,105 @@ sendiri di panel kanan:
 | `Delete` / `Backspace` | Hapus yang terpilih |
 | `Esc` | Batalkan seleksi |
 | `?` | Bantuan |
+| Klik ganda perangkat | Buka CLI-nya |
 
 Scroll untuk menggeser kanvas, `⌥/Alt + scroll` untuk zoom, drag kiri untuk
 seleksi kotak, drag tengah/kanan untuk menggeser.
+
+---
+
+## CLI perangkat (seperti Packet Tracer)
+
+Setiap perangkat aktif punya konsol CLI sendiri. **Klik ganda perangkat** di
+kanvas (atau klik kanan → *Buka CLI*, atau tombol **CLI** di toolbar dan panel
+kanan), dan konsolnya terbuka di bawah kanvas — satu tab per perangkat,
+seperti jendela CLI di Cisco Packet Tracer.
+
+Dialeknya mengikuti OS perangkat:
+
+| Perangkat | Dialek | Contoh |
+|---|---|---|
+| Huawei S-series | VRP | `system-view` → `interface GE0/0/1` → `port link-type access` |
+| Huawei NE, CloudEngine | VRP8 (dua tahap) | prompt `[~HOST]` / `[*HOST]`, berlaku setelah `commit` |
+| Juniper | Junos | `configure` → `set interfaces xe-0/0/0 unit 0 family inet address …` → `commit` |
+| MikroTik | RouterOS 7 | `/interface bridge vlan add vlan-ids=100 tagged=bond1` |
+| Cisco | IOS | `enable` → `conf t` → `interface Gi1/0/1` → `switchport mode trunk` |
+| ZTE, TP-Link, BDCOM, OLT lain | gaya IOS | sintaks aslinya bisa sedikit berbeda — ditandai di banner |
+| Server, ONT, CPE | shell Linux | `ip addr add 10.0.0.2/24 dev nic1`, `ip route add default via …` |
+| ODC, ODP, splitter, awan, media converter | — | perangkat pasif, tanpa CLI |
+
+```text
+<SW-ACC-JKT-01>system-view
+[SW-ACC-JKT-01]interface GigabitEthernet0/0/10
+[SW-ACC-JKT-01-GigabitEthernet0/0/10]ip address 10.9.0.1 30
+Error: The interface is a Layer 2 port and cannot be assigned an IP address.
+│ GE0/0/10 masih port L2. Jalankan `undo portswitch` dulu (konfigurasi VLAN-nya ikut terhapus).
+[SW-ACC-JKT-01-GigabitEthernet0/0/10]undo portswitch
+[SW-ACC-JKT-01-GigabitEthernet0/0/10]ip address 10.9.0.1 30
+```
+
+### CLI dan kanvas memakai data yang sama
+
+Perintah konfigurasi tidak disimpan sebagai teks terpisah — ia langsung
+mengubah topologi, dan sebaliknya:
+
+- **hostname**, **deskripsi**, **shutdown**, **link-type & VLAN**, **alamat IP**,
+  **Eth-Trunk / ae / bond / Port-channel** beserta anggotanya, **loopback**,
+  dan **rute statis** yang diubah lewat CLI langsung tampil di kanvas dan panel kanan.
+- Yang diubah lewat panel kanan langsung terlihat di `display current-configuration`,
+  `show running-config`, `show configuration`, atau `/export`.
+- Satu perintah = satu langkah riwayat, jadi `⌘/Ctrl + Z` di kanvas membatalkannya.
+- Junos dan VRP8 menampung perubahan sampai `commit`; `show | compare`,
+  `rollback`, dan `clear configuration candidate` bekerja seperti aslinya.
+- `save` / `write memory` / `copy running-config startup-config` menyimpan topologi ke browser.
+
+Port yang di-`shutdown` dicoret merah di node, dan kabelnya digambar putus-putus
+dengan label **shutdown**. Rute statis juga bisa diatur dari panel kanan.
+
+### Ping dan traceroute
+
+`ping` dan `tracert`/`traceroute` disimulasikan hop demi hop dari data topologi:
+
+- **Lapisan 2** — frame mengikuti kabel dan VLAN tiap port (access, trunk,
+  hybrid, PVID). VLAN yang tidak sama di sepanjang jalur benar-benar memutus ping.
+  Perangkat pasif dan media converter diteruskan apa adanya.
+- **Lapisan 3** — tiap perangkat hanya mengenal **jaringan yang tersambung
+  langsung dan rute statis**, persis seperti router yang belum diberi
+  OSPF/IS-IS/BGP. Ping lintas hop butuh rute pergi *dan* rute pulang.
+- **Status link** — kabel yang salah satu ujungnya shutdown, atau trunk tanpa
+  anggota, dianggap down beserta rute yang lewat di situ.
+
+Bila ping gagal, konsol menambahkan satu baris penjelasan (warna biru, bahasa
+Indonesia) — mis. interface mana yang down, atau bahwa rute statis belum ada.
+Keluaran lain sengaja meniru perangkat aslinya dalam bahasa Inggris.
+
+`display ip routing-table` / `show ip route` / `show route`, tabel ARP, dan
+tetangga LLDP/CDP (`display lldp neighbor brief`, `show cdp neighbors`,
+`/ip neighbor print`) semuanya dihitung dari kabel yang sama.
+
+### Di dalam konsol
+
+| Tombol | Aksi |
+|---|---|
+| `?` | Bantuan untuk posisi saat ini, seperti perangkat asli |
+| `Tab` | Lengkapi kata kunci atau nama interface |
+| `↑` / `↓` | Riwayat perintah |
+| `Ctrl + C` | Hentikan ping/traceroute, atau batalkan baris |
+| `Ctrl + Z` | Keluar ke mode awal (`end` di IOS, `return` di VRP) |
+| `Ctrl + L` | Bersihkan layar |
+
+Kata kunci boleh disingkat selama tidak rancu (`dis ip int br`, `sh run`,
+`sh int ter`), dan galatnya ditulis dengan gaya masing-masing vendor, lengkap
+dengan tanda `^` di posisi yang salah. Keluaran bisa disaring dengan pipa:
+`| include`, `| begin`, `| section` (IOS), `| match`, `| except`,
+`| display set` (Junos).
+
+### Batasan simulasi
+
+- Belum ada protokol routing dinamis (OSPF, IS-IS, BGP), VLANIF/SVI, maupun subinterface.
+- Satu alamat IP per interface; Junos hanya `unit 0`; MikroTik memakai satu bridge (`bridge1`).
+- Service-port GPON di OLT belum dimodelkan — CLI OLT mengatur port uplink dan VLAN-nya saja.
+- Riwayat dan isi layar konsol tidak disimpan; konfigurasinya tersimpan bersama topologi.
 
 ---
 
@@ -364,19 +465,21 @@ atau dibaca oleh skrip lain. Strukturnya (lihat [`src/types/topology.ts`](src/ty
 
 ```jsonc
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "project": { "id": "...", "name": "Backbone Jakarta", "site": "POP-JKT-1", "updatedAt": "..." },
   "devices": [
     {
       "id": "dev_1", "modelId": "juniper-mx204", "hostname": "MX204-CORE-01",
       "role": "core-router", "mgmtIp": "10.10.0.1", "loopback": "10.255.0.1",
       "site": "POP-JKT-1", "notes": "", "position": { "x": 380, "y": 20 },
+      // Rute statis — sama dengan `ip route-static` / `ip route` di CLI
+      "staticRoutes": [{ "prefix": "0.0.0.0/0", "nextHop": "10.0.0.2" }],
       "ports": [
         // linkType: none | access | trunk | hybrid | routed
         { "id": "p_1", "name": "et-0/0/0", "speed": "100G", "media": "qsfp28",
           "description": "to SSW-01", "side": "left",
           "linkType": "routed", "pvid": null, "allowedVlans": "",
-          "untaggedVlans": "", "ipAddress": "10.0.0.1/30" },
+          "untaggedVlans": "", "ipAddress": "10.0.0.1/30", "shutdown": false },
         { "id": "p_2", "name": "et-0/0/1", "speed": "100G", "media": "qsfp28",
           "description": "", "side": "right",
           "linkType": "trunk", "pvid": 1, "allowedVlans": "1,100,200,300-305",
@@ -415,8 +518,9 @@ File yang diimpor divalidasi dengan zod; kalau ada yang tidak sesuai, aplikasi
 menyebutkan field mana yang bermasalah dan tidak menimpa pekerjaan Anda.
 
 File lama tetap bisa dibuka — **versi 1** (sebelum ada trunk), **2** (sebelum
-ada VLAN), dan **3** (sebelum kabel bisa dibelokkan). Field baru terisi nilai
-bawaan, lalu file tersimpan ulang sebagai versi 4.
+ada VLAN), **3** (sebelum kabel bisa dibelokkan), dan **4** (sebelum ada
+`shutdown` dan rute statis). Field baru terisi nilai bawaan, lalu file
+tersimpan ulang sebagai versi 5.
 
 ---
 
@@ -496,7 +600,9 @@ src/
 ├─ data/sampleTopology.ts   # topologi contoh saat pertama dibuka
 ├─ store/useTopologyStore.ts# state kanvas, undo/redo, aturan penyambungan port
 ├─ store/useUiStore.ts      # tema, panel, preferensi tampilan
-├─ components/              # Toolbar, DevicePalette, Canvas, node, edge, Inspector
+├─ store/useConsoleStore.ts # sesi konsol CLI per perangkat
+├─ components/              # Toolbar, DevicePalette, Canvas, node, edge, Inspector, console/
+├─ lib/cli/                 # CLI: pencocok perintah, simulasi ping, dialek VRP/IOS/Junos/RouterOS/Linux
 └─ lib/                     # ports, layout (dagre), serialize, persistence, export, validate
 ```
 
@@ -505,6 +611,7 @@ src/
 ## Yang belum ada (rencana berikutnya)
 
 - Monitoring live: warna up/down per perangkat dan link lewat ping/SNMP.
+- CLI: OSPF/IS-IS/BGP, VLANIF/SVI dan subinterface, service-port GPON di OLT.
 - Auto-discovery LLDP/SNMP untuk menggambar topologi otomatis.
 - Backend multi-user dengan login dan riwayat perubahan.
 

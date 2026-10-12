@@ -9,6 +9,7 @@ export const DEFAULT_SWITCHING = {
   allowedVlans: '',
   untaggedVlans: '',
   ipAddress: '',
+  shutdown: false,
 } as const
 
 export interface ExpandedPort {

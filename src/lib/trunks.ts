@@ -6,6 +6,7 @@ const NAMING: Record<DeviceModel['os'], { prefix: string; start: number }> = {
   vrp: { prefix: 'Eth-Trunk', start: 1 }, // Huawei
   junos: { prefix: 'ae', start: 0 }, // Juniper
   routeros: { prefix: 'bond', start: 1 }, // MikroTik
+  ios: { prefix: 'Port-channel', start: 1 }, // Cisco
   other: { prefix: 'lag', start: 1 },
 }
 

@@ -44,6 +44,7 @@ function device(
     notes: '',
     ports,
     trunks: [],
+    staticRoutes: [],
     expanded: ports.length <= 16,
   }
   return { node: { id: uid('dev'), type: 'device', position: { x, y }, data }, data, os: model.os }

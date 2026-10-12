@@ -1,4 +1,4 @@
-import { Link2, Plus, Trash2, Wand2 } from 'lucide-react'
+import { Link2, Plus, Power, Trash2, Wand2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { trunkOfPort } from '@/lib/trunks'
 import { deviceUsage } from '@/lib/usage'
@@ -204,6 +204,16 @@ export function PortTable({ device }: { device: DeviceNode }) {
                   aria-label="Nama port"
                   onChange={(e) => updatePort(device.id, p.id, { name: e.target.value })}
                 />
+                <button
+                  type="button"
+                  className="btn shrink-0 px-1 py-0.5"
+                  title={p.shutdown ? 'Port di-shutdown — klik untuk menghidupkan (undo shutdown)' : 'Shutdown port'}
+                  aria-pressed={p.shutdown}
+                  onClick={() => updatePort(device.id, p.id, { shutdown: !p.shutdown })}
+                  style={{ color: p.shutdown ? '#ef4444' : 'var(--muted)' }}
+                >
+                  <Power size={11} />
+                </button>
                 <button
                   type="button"
                   className="btn shrink-0 px-1.5 py-0.5 text-[10px]"

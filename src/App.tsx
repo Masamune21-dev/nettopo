@@ -3,6 +3,7 @@ import { PanelLeft } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { AiDialog } from '@/components/AiDialog'
 import { Canvas } from '@/components/Canvas'
+import { ConsolePanel } from '@/components/console/ConsolePanel'
 import { DevicePalette } from '@/components/DevicePalette'
 import { HelpDialog } from '@/components/HelpDialog'
 import { IpamDialog } from '@/components/IpamDialog'
@@ -86,7 +87,10 @@ function Workspace() {
         >
           <PanelLeft size={14} />
         </button>
-        <Canvas />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Canvas />
+          <ConsolePanel />
+        </div>
         {inspectorOpen ? <Inspector /> : null}
       </div>
       <ProjectsDialog />

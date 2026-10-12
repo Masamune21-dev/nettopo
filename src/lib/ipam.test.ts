@@ -19,6 +19,7 @@ function dev(id: string, hostname: string, modelId = 'juniper-mx204'): DeviceNod
       notes: '',
       ports: buildPorts(getModel(modelId)!),
       trunks: [],
+      staticRoutes: [],
       expanded: true,
     },
   }

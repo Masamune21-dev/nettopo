@@ -56,6 +56,7 @@ export function toTopology(
       position: { x: Math.round(n.position.x), y: Math.round(n.position.y) },
       ports: n.data.ports,
       trunks: n.data.trunks,
+      staticRoutes: n.data.staticRoutes,
       expanded: n.data.expanded,
       parentId: n.parentId ?? null,
     })),
@@ -116,6 +117,7 @@ export function fromTopology(t: Topology): {
       notes: d.notes,
       ports: d.ports,
       trunks: d.trunks,
+      staticRoutes: d.staticRoutes,
       expanded: d.expanded,
     }
     return {

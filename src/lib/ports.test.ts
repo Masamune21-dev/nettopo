@@ -146,6 +146,7 @@ describe('nextPortName', () => {
     allowedVlans: '',
     untaggedVlans: '',
     ipAddress: '',
+    shutdown: false,
   })
 
   it('melewati nama yang sudah dipakai', () => {

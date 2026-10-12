@@ -61,6 +61,8 @@ interface TopologyState {
 
   addDevice: (modelId: string, position: XYPosition) => void
   updateDevice: (id: string, patch: Partial<DeviceNodeData>) => void
+  /** Ganti seluruh data perangkat dalam satu langkah riwayat — dipakai CLI. */
+  replaceDeviceData: (id: string, data: DeviceNodeData) => void
   updatePort: (deviceId: string, portId: string, patch: Partial<Port>) => void
   updatePorts: (deviceId: string, portIds: string[], patch: Partial<Port>) => void
   addPort: (deviceId: string) => void
@@ -320,6 +322,7 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
           notes: '',
           ports,
           trunks: [],
+          staticRoutes: [],
           expanded: ports.length <= 16,
         },
       }
@@ -329,6 +332,11 @@ export const useTopologyStore = create<TopologyState>()((set, get) => {
     updateDevice: (id, patch) =>
       withHistory(() =>
         patchNode(id, (n) => (isDeviceNode(n) ? { ...n, data: { ...n.data, ...patch } } : n)),
+      ),
+
+    replaceDeviceData: (id, data) =>
+      withHistory(() =>
+        patchNode(id, (n) => (isDeviceNode(n) ? { ...n, data: { ...data, expanded: n.data.expanded } } : n)),
       ),
 
     updatePort: (deviceId, portId, patch) =>

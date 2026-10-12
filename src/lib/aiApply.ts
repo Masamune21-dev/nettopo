@@ -103,6 +103,7 @@ export function applyBuildPlan(plan: BuildPlan): ApplyResult {
       notes: '',
       ports,
       trunks: [],
+      staticRoutes: [],
       expanded: ports.length <= 16,
     }
     const id = uid('dev')

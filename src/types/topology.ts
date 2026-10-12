@@ -153,6 +153,8 @@ const switchingFields = {
   untaggedVlans: z.string().default(''),
   /** Mode routed: alamat IP interface, mis. "10.0.0.1/30". */
   ipAddress: z.string().default(''),
+  /** Dimatikan secara administratif (`shutdown`) — link tetap tergambar, tapi tidak meneruskan apa pun. */
+  shutdown: z.boolean().default(false),
 }
 
 export const portSchema = z.object({
@@ -180,6 +182,13 @@ export const trunkSchema = z.object({
   ...switchingFields,
 })
 
+/** Rute statis: `ip route-static` / `ip route` / `set routing-options static`. */
+export const staticRouteSchema = z.object({
+  /** Tujuan dalam notasi CIDR, mis. "0.0.0.0/0". */
+  prefix: z.string(),
+  nextHop: z.string(),
+})
+
 export const deviceSchema = z.object({
   id: z.string(),
   modelId: z.string(),
@@ -192,6 +201,7 @@ export const deviceSchema = z.object({
   position: z.object({ x: z.number(), y: z.number() }),
   ports: z.array(portSchema),
   trunks: z.array(trunkSchema).default([]),
+  staticRoutes: z.array(staticRouteSchema).default([]),
   expanded: z.boolean().default(true),
   parentId: z.string().nullable().default(null),
 })
@@ -236,7 +246,7 @@ export const noteSchema = z.object({
 
 export const topologySchema = z.object({
   // Versi 1 (tanpa trunk) tetap diterima: field baru terisi nilai bawaan.
-  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
   project: z.object({
     id: z.string(),
     name: z.string(),
@@ -251,6 +261,7 @@ export const topologySchema = z.object({
 
 export type Port = z.infer<typeof portSchema>
 export type Trunk = z.infer<typeof trunkSchema>
+export type StaticRoute = z.infer<typeof staticRouteSchema>
 export type Device = z.infer<typeof deviceSchema>
 export type Endpoint = z.infer<typeof endpointSchema>
 export type Link = z.infer<typeof linkSchema>
@@ -259,5 +270,5 @@ export type TopoGroup = z.infer<typeof groupSchema>
 export type TopoNote = z.infer<typeof noteSchema>
 export type Topology = z.infer<typeof topologySchema>
 
-export const SCHEMA_VERSION = 4 as const
-export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4] as const
+export const SCHEMA_VERSION = 5 as const
+export const SUPPORTED_SCHEMA_VERSIONS = [1, 2, 3, 4, 5] as const

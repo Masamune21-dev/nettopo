@@ -46,7 +46,7 @@ export interface DeviceModel {
   series: string
   model: string
   role: DeviceRole
-  os: 'junos' | 'vrp' | 'routeros' | 'other'
+  os: 'junos' | 'vrp' | 'routeros' | 'ios' | 'other'
   /** Keterangan singkat yang muncul di tooltip palette */
   note?: string
   ports: PortTemplate[]
@@ -864,7 +864,7 @@ export const DEVICE_CATALOG: DeviceModel[] = [
     series: 'ASR920',
     model: 'ASR920-24SZ-M',
     role: 'metro-switch',
-    os: 'other',
+    os: 'ios',
     note: 'Metro — 24× SFP 1G + 4× SFP+ 10G',
     ports: [
       { prefix: 'GigabitEthernet0/0/', count: 24, startIndex: 1, speed: '1G', media: 'sfp', group: 'GE SFP' },
@@ -877,7 +877,7 @@ export const DEVICE_CATALOG: DeviceModel[] = [
     series: 'ASR1000',
     model: 'ASR1001-X',
     role: 'router',
-    os: 'other',
+    os: 'ios',
     note: '6× GE + 2× SFP+ 10G',
     ports: [
       { prefix: 'GigabitEthernet0/0/', count: 6, startIndex: 0, speed: '1G', media: 'sfp', group: 'GE' },
@@ -890,7 +890,7 @@ export const DEVICE_CATALOG: DeviceModel[] = [
     series: 'Catalyst',
     model: 'Catalyst C9300-48P',
     role: 'access-switch',
-    os: 'other',
+    os: 'ios',
     note: '48× GE PoE + uplink modul 10G',
     ports: [
       { prefix: 'GigabitEthernet1/0/', count: 48, startIndex: 1, speed: '1G', media: 'rj45', group: 'GE PoE' },

@@ -145,6 +145,7 @@ export function portsCsv(topo: Topology): string {
       'anggota_trunk',
       'ringkasan',
       'deskripsi',
+      'status_admin',
     ],
   ]
 
@@ -169,6 +170,7 @@ export function portsCsv(topo: Topology): string {
         t.memberIds.map((m) => d.ports.find((p) => p.id === m)?.name ?? '').join(' '),
         ifaceSummary(t),
         t.description,
+        t.shutdown ? 'shutdown' : 'up',
       ])
     }
 
@@ -187,6 +189,7 @@ export function portsCsv(topo: Topology): string {
         '',
         ifaceSummary(p),
         p.description,
+        p.shutdown ? 'shutdown' : 'up',
       ])
     }
   }

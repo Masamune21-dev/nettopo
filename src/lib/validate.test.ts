@@ -19,6 +19,7 @@ function dev(id: string, hostname: string, mgmtIp: string, modelId: string): Dev
       notes: '',
       ports: buildPorts(getModel(modelId)!),
       trunks: [],
+      staticRoutes: [],
       expanded: true,
     },
   }

@@ -6,6 +6,7 @@ import type {
   Port,
   RoutingMode,
   Speed,
+  StaticRoute,
   Trunk,
   Waypoint,
 } from '@/types/topology'
@@ -20,6 +21,7 @@ export type DeviceNodeData = {
   notes: string
   ports: Port[]
   trunks: Trunk[]
+  staticRoutes: StaticRoute[]
   expanded: boolean
 }
 

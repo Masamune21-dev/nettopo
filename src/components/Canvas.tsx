@@ -18,6 +18,7 @@ import { LinkEdge } from '@/components/edges/LinkEdge'
 import { DeviceNode } from '@/components/nodes/DeviceNode'
 import { GroupNode } from '@/components/nodes/GroupNode'
 import { NoteNode } from '@/components/nodes/NoteNode'
+import { useConsoleStore } from '@/store/useConsoleStore'
 import { useTopologyStore } from '@/store/useTopologyStore'
 import { useUiStore } from '@/store/useUiStore'
 import { isDeviceNode, type AppEdge, type AppNode } from '@/store/types'
@@ -39,6 +40,7 @@ export function Canvas() {
   const { screenToFlowPosition } = useReactFlow()
   const wrapper = useRef<HTMLDivElement>(null)
   const [menu, setMenu] = useState<ContextMenuState | null>(null)
+  const openConsole = useConsoleStore((s) => s.openFor)
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -85,7 +87,7 @@ export function Canvas() {
   const snapGrid = useMemo<[number, number]>(() => [gridSize, gridSize], [gridSize])
 
   return (
-    <div ref={wrapper} className="relative h-full flex-1" onDrop={onDrop} onDragOver={onDragOver}>
+    <div ref={wrapper} className="relative min-h-0 flex-1" onDrop={onDrop} onDragOver={onDragOver}>
       <ReactFlow<AppNode, AppEdge>
         nodes={store.nodes}
         edges={store.edges}
@@ -112,6 +114,9 @@ export function Canvas() {
         onPaneClick={() => setMenu(null)}
         onPaneContextMenu={(e) => openMenu(e as React.MouseEvent)}
         onNodeContextMenu={(e, node) => openMenu(e, node.id)}
+        onNodeDoubleClick={(_e, node) => {
+          if (isDeviceNode(node)) openConsole(node.id)
+        }}
         onMoveStart={() => setMenu(null)}
         proOptions={{ hideAttribution: true }}
         fitView
@@ -135,6 +140,18 @@ export function Canvas() {
         >
           {menu.nodeId ? (
             <>
+              {store.nodes.some((n) => n.id === menu.nodeId && isDeviceNode(n)) ? (
+                <button
+                  type="button"
+                  className="block w-full px-3 py-1.5 text-left hover:bg-black/5 dark:hover:bg-white/5"
+                  onClick={() => {
+                    openConsole(menu.nodeId as string)
+                    setMenu(null)
+                  }}
+                >
+                  Buka CLI
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="block w-full px-3 py-1.5 text-left hover:bg-black/5 dark:hover:bg-white/5"

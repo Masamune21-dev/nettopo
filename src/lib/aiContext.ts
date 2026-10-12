@@ -45,22 +45,27 @@ export function describeTopology(topo: Topology, opts: { withIds?: boolean } = {
         .join(', ')
       lines.push(
         `    trunk ${t.name} (${t.mode}) anggota: ${members} = ${s.label}` +
-          (ifaceSummary(t) ? ` | ${ifaceSummary(t)}` : ''),
+          (ifaceSummary(t) ? ` | ${ifaceSummary(t)}` : '') +
+          (t.shutdown ? ' | shutdown' : ''),
       )
     }
 
     // Hanya port yang sudah dikonfigurasi atau punya deskripsi yang disebut,
     // supaya switch 48 port tidak membanjiri konteks.
-    const notable = d.ports.filter((p) => p.linkType !== 'none' || p.description)
+    const notable = d.ports.filter((p) => p.linkType !== 'none' || p.description || p.shutdown)
     for (const p of notable) {
       lines.push(
         `    port ${p.name} (${p.speed}/${p.media})` +
           (ifaceSummary(p) ? ` | ${ifaceSummary(p)}` : '') +
-          (p.description ? ` | ${p.description}` : ''),
+          (p.description ? ` | ${p.description}` : '') +
+          (p.shutdown ? ' | shutdown' : ''),
       )
     }
     const rest = d.ports.length - notable.length
     if (rest > 0) lines.push(`    (+${rest} port lain belum dikonfigurasi)`)
+    if (d.staticRoutes.length) {
+      lines.push(`    rute statis: ${d.staticRoutes.map((r) => `${r.prefix} via ${r.nextHop}`).join(', ')}`)
+    }
   }
 
   lines.push('')

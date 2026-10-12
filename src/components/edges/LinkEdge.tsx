@@ -60,22 +60,25 @@ function LinkEdgeInner({
       if (!isDeviceNode(n)) return '\u0000'
       const trunk = n.data.trunks.find((t) => t.id === handle)
       if (trunk) {
-        return `${trunk.name}\u0001${summarizeTrunk(trunk, n.data.ports).composition}\u0001${ifaceVlanLabel(trunk)}`
+        return `${trunk.name}\u0001${summarizeTrunk(trunk, n.data.ports).composition}\u0001${ifaceVlanLabel(trunk)}\u0001${trunk.shutdown ? '1' : ''}`
       }
       const port = n.data.ports.find((p) => p.id === handle)
-      return port ? `${port.name}\u0001\u0001${ifaceVlanLabel(port)}` : '\u0000'
+      return port ? `${port.name}\u0001\u0001${ifaceVlanLabel(port)}\u0001${port.shutdown ? '1' : ''}` : '\u0000'
     }
     return `${describe(source, edge?.sourceHandle)}\u0002${describe(target, edge?.targetHandle)}`
   })
 
   const [aSide, bSide] = endpoints.split('\u0002').map((part) => {
-    const [name, composition, vlan] = part.split('\u0001')
+    const [name, composition, vlan, shut] = part.split('\u0001')
     return {
       name: name === '\u0000' ? '' : (name ?? ''),
       composition: composition ?? '',
       vlan: vlan ?? '',
+      shut: shut === '1',
     }
   })
+  // Salah satu ujung di-shutdown: kabel tetap tergambar, tapi jelas terlihat mati.
+  const adminDown = Boolean(aSide?.shut || bSide?.shut)
   const bundle = aSide?.composition || bSide?.composition
   // VLAN diambil dari konfigurasi interface; kolom VLAN pada link hanya penimpa manual.
   const vlanLabel = data?.vlans ? `vl ${data.vlans}` : aSide?.vlan || bSide?.vlan || ''
@@ -112,7 +115,8 @@ function LinkEdgeInner({
   const style = {
     stroke: color,
     strokeWidth: selected ? width + 1.4 : width,
-    strokeDasharray: dash,
+    strokeDasharray: adminDown ? '2 6' : dash,
+    strokeOpacity: adminDown ? 0.55 : undefined,
     strokeLinecap: 'round' as const,
   }
 
@@ -178,6 +182,7 @@ function LinkEdgeInner({
           {kind === 'lacp' ? (
             <span style={{ color: 'var(--muted)' }}>{bundle ? 'LACP' : 'bundle'}</span>
           ) : null}
+          {adminDown ? <span style={{ color: '#ef4444' }}>shutdown</span> : null}
           {vlanLabel ? <span style={{ color: 'var(--muted)' }}>{vlanLabel}</span> : null}
           {data?.label ? <span style={{ color: 'var(--muted)' }}>{data.label}</span> : null}
         </div>

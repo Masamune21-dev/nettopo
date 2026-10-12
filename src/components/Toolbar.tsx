@@ -14,6 +14,7 @@ import {
   Search,
   Network,
   Sparkles,
+  SquareTerminal,
   StickyNote,
   Sun,
   Tag,
@@ -29,6 +30,7 @@ import type { AlignMode, DistributeMode, LayoutDirection } from '@/lib/layout'
 import { uid } from '@/lib/id'
 import { listProjects, saveProject } from '@/lib/persistence'
 import { fromTopology, parseTopology, toTopology } from '@/lib/serialize'
+import { useConsoleStore } from '@/store/useConsoleStore'
 import { useTopologyStore } from '@/store/useTopologyStore'
 import { useUiStore } from '@/store/useUiStore'
 import { isDeviceNode } from '@/store/types'
@@ -401,6 +403,21 @@ export function Toolbar() {
         title="Alamat IP: daftar subnet, pemberian alamat otomatis, ekspor rencana"
       >
         <Network size={13} /> <span className="hidden xl:inline">IP</span>
+      </button>
+
+      <button
+        type="button"
+        className="btn"
+        onClick={() => {
+          // Perangkat yang sedang dipilih langsung dibuka; selain itu panel konsol ditampilkan/disembunyikan.
+          const picked = store.nodes.find((n) => n.selected && isDeviceNode(n))
+          const con = useConsoleStore.getState()
+          if (picked) con.openFor(picked.id)
+          else con.setOpen(!con.open)
+        }}
+        title="CLI perangkat seperti di Packet Tracer — klik ganda perangkat untuk membuka konsolnya"
+      >
+        <SquareTerminal size={13} /> <span className="hidden xl:inline">CLI</span>
       </button>
 
       <Menu label="Tambah" icon={<Plus size={13} />}>
