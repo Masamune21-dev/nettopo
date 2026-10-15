@@ -147,6 +147,19 @@ export function PortTable({ device }: { device: DeviceNode }) {
         </button>
       </div>
 
+      {/* Arti ikon di tiap baris port — tanpa ini kotak centang dan tombol L/R sulit ditebak. */}
+      <p className="mb-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[10px]" style={{ color: 'var(--muted)' }}>
+        <span className="flex items-center gap-1">
+          <span className="inline-block size-2.5 rounded-sm border" style={{ borderColor: 'var(--muted)' }} /> pilih untuk trunk / isi VLAN
+        </span>
+        <span className="flex items-center gap-1">
+          <Power size={10} /> shutdown
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="font-semibold">L/R</span> sisi port di node
+        </span>
+      </p>
+
       <ul
         className="thin-scroll max-h-[44vh] space-y-1 overflow-y-auto rounded-md border p-1"
         style={{ borderColor: 'var(--border)' }}

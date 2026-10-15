@@ -1,5 +1,5 @@
 import { useReactFlow } from '@xyflow/react'
-import { AlertTriangle, Info, PanelRightClose } from 'lucide-react'
+import { AlertTriangle, Info, Lightbulb, PanelRightClose } from 'lucide-react'
 import { useMemo } from 'react'
 import { validateTopology } from '@/lib/validate'
 import { useTopologyStore } from '@/store/useTopologyStore'
@@ -112,10 +112,50 @@ function ProjectPanel() {
         )}
       </section>
 
-      <p className="text-[10.5px] leading-relaxed" style={{ color: 'var(--muted)' }}>
-        Pilih sebuah perangkat atau kabel di kanvas untuk mengubah propertinya di panel ini.
-      </p>
+      <QuickTips />
     </div>
+  )
+}
+
+const TIPS: [string, string][] = [
+  ['Klik perangkat / kabel', 'ubah propertinya di panel ini'],
+  ['Klik ganda perangkat', 'buka CLI-nya'],
+  ['Tarik dari titik port', 'buat kabel ke perangkat lain'],
+  ['Klik kanan kanvas', 'tambah area / POP atau catatan'],
+  ['Alt/⌥ + scroll', 'perbesar atau perkecil kanvas'],
+  ['Cmd/Ctrl + Z', 'batalkan perubahan terakhir'],
+]
+
+/** Contekan interaksi utama — tampil saat belum ada yang dipilih, jadi selalu mudah ditemukan. */
+function QuickTips() {
+  const setWelcome = useUiStore((s) => s.setWelcome)
+  return (
+    <section>
+      <span className="label flex items-center gap-1">
+        <Lightbulb size={11} /> Cara cepat
+      </span>
+      <ul className="space-y-1">
+        {TIPS.map(([action, effect]) => (
+          <li key={action} className="flex items-baseline gap-2 text-[11px] leading-snug">
+            <span
+              className="shrink-0 rounded border px-1.5 py-px text-[10.5px] font-medium"
+              style={{ borderColor: 'var(--border)', background: 'var(--panel-2)' }}
+            >
+              {action}
+            </span>
+            <span style={{ color: 'var(--muted)' }}>{effect}</span>
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        className="mt-2 text-[11px] underline-offset-2 hover:underline"
+        style={{ color: '#818cf8' }}
+        onClick={() => setWelcome(true)}
+      >
+        Tampilkan panduan awal
+      </button>
+    </section>
   )
 }
 

@@ -1,9 +1,10 @@
 import { useReactFlow } from '@xyflow/react'
 import {
+  Check,
   ChevronDown,
   Download,
+  Eye,
   FolderOpen,
-  Grid3x3,
   HelpCircle,
   LayoutGrid,
   Moon,
@@ -17,7 +18,6 @@ import {
   SquareTerminal,
   StickyNote,
   Sun,
-  Tag,
   Undo2,
   Upload,
 } from 'lucide-react'
@@ -38,10 +38,16 @@ import { isDeviceNode } from '@/store/types'
 function Menu({
   label,
   icon,
+  title,
+  align = 'left',
   children,
 }: {
   label: string
   icon: React.ReactNode
+  /** Keterangan saat disorot; bawaannya sama dengan label. */
+  title?: string
+  /** Menu di ujung kanan toolbar dibuka rata kanan supaya tidak keluar layar. */
+  align?: 'left' | 'right'
   children: (close: () => void) => React.ReactNode
 }) {
   const [open, setOpen] = useState(false)
@@ -58,14 +64,14 @@ function Menu({
 
   return (
     <div className="relative" ref={ref}>
-      <button type="button" className="btn" onClick={() => setOpen((v) => !v)} title={label}>
+      <button type="button" className="btn" onClick={() => setOpen((v) => !v)} title={title ?? label} aria-expanded={open}>
         {icon}
         <span className="hidden xl:inline">{label}</span>
         <ChevronDown size={12} />
       </button>
       {open ? (
         <div
-          className="absolute left-0 top-full z-50 mt-1 min-w-[190px] overflow-hidden rounded-md border py-1 shadow-lg"
+          className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} top-full z-50 mt-1 min-w-[190px] overflow-hidden rounded-md border py-1 shadow-lg`}
           style={{ background: 'var(--panel)', borderColor: 'var(--border)' }}
         >
           {children(() => setOpen(false))}
@@ -80,12 +86,34 @@ function MenuItem({ onClick, children }: { onClick: () => void; children: React.
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] hover:bg-black/5 dark:hover:bg-white/5"
+      className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-1.5 text-left text-[12px] hover:bg-black/5 dark:hover:bg-white/5"
     >
       {children}
     </button>
   )
 }
+
+/** Pilihan hidup/mati di menu: tanda centang di kiri supaya statusnya terbaca sekilas. */
+function ToggleItem({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <MenuItem onClick={onClick}>
+      <span className="flex w-3.5 justify-center" style={{ color: '#4f46e5' }}>
+        {on ? <Check size={13} /> : null}
+      </span>
+      {children}
+    </MenuItem>
+  )
+}
+
+function MenuHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="px-3 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
+      {children}
+    </div>
+  )
+}
+
+const MenuDivider = () => <div className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
 
 function DeviceSearch() {
   const [q, setQ] = useState('')
@@ -247,13 +275,28 @@ export function Toolbar() {
         <Save size={13} /> <span className="hidden xl:inline">Simpan</span>
       </button>
 
-      <button type="button" className="btn" onClick={() => ui.set('projectsOpen', true)} title="Daftar topologi tersimpan">
-        <FolderOpen size={13} /> <span className="hidden xl:inline">Buka</span>
-      </button>
-
-      <button type="button" className="btn" onClick={() => fileRef.current?.click()} title="Impor file JSON">
-        <Upload size={13} /> <span className="hidden xl:inline">Impor</span>
-      </button>
+      <Menu label="Buka" icon={<FolderOpen size={13} />} title="Buka topologi tersimpan, buat baru, atau impor file JSON">
+        {(close) => (
+          <>
+            <MenuItem
+              onClick={() => {
+                ui.set('projectsOpen', true)
+                close()
+              }}
+            >
+              <FolderOpen size={13} /> Topologi tersimpan / baru…
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                fileRef.current?.click()
+                close()
+              }}
+            >
+              <Upload size={13} /> Impor file JSON…
+            </MenuItem>
+          </>
+        )}
+      </Menu>
       <input
         ref={fileRef}
         type="file"
@@ -342,10 +385,8 @@ export function Toolbar() {
               Paskan ke layar
             </MenuItem>
 
-            <div className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
-            <div className="px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
-              Objek terpilih
-            </div>
+            <MenuDivider />
+            <MenuHeading>Objek terpilih</MenuHeading>
             {(
               [
                 ['left', 'Rata kiri'],
@@ -447,52 +488,54 @@ export function Toolbar() {
 
       <DeviceSearch />
 
-      <button
-        type="button"
-        className="btn"
-        onClick={() => ui.set('showPortLabels', !ui.showPortLabels)}
-        title="Tampilkan nama port di kabel"
-        style={{ color: ui.showPortLabels ? '#4f46e5' : undefined }}
-      >
-        <Tag size={13} />
-      </button>
-      <Menu label="Grid" icon={<Grid3x3 size={13} />}>
+      <Menu label="Tampilan" icon={<Eye size={13} />} title="Label port, grid, dan tema" align="right">
         {(close) => (
           <>
-            <MenuItem
+            <ToggleItem
+              on={ui.showPortLabels}
+              onClick={() => {
+                ui.set('showPortLabels', !ui.showPortLabels)
+                close()
+              }}
+            >
+              Nama port di ujung kabel
+            </ToggleItem>
+            <ToggleItem
+              on={ui.snapToGrid}
               onClick={() => {
                 ui.set('snapToGrid', !ui.snapToGrid)
                 close()
               }}
             >
-              {ui.snapToGrid ? '✓ ' : '\u2007\u2007'}Snap ke grid
-            </MenuItem>
-            <div className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
-            <div
-              className="px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
-              style={{ color: 'var(--muted)' }}
-            >
-              Ukuran grid
-            </div>
+              Tempel ke grid saat digeser
+            </ToggleItem>
+            <MenuDivider />
+            <MenuHeading>Ukuran grid</MenuHeading>
             {[8, 16, 24, 32].map((size) => (
-              <MenuItem
+              <ToggleItem
                 key={size}
+                on={ui.gridSize === size}
                 onClick={() => {
                   ui.set('gridSize', size)
                   close()
                 }}
               >
-                {ui.gridSize === size ? '✓ ' : '\u2007\u2007'}
-                {size} px
-                {size === 16 ? ' (bawaan)' : ''}
-              </MenuItem>
+                {size} px{size === 16 ? ' (bawaan)' : ''}
+              </ToggleItem>
             ))}
+            <MenuDivider />
+            <MenuItem
+              onClick={() => {
+                ui.toggleTheme()
+                close()
+              }}
+            >
+              <span className="flex w-3.5 justify-center">{ui.theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}</span>
+              {ui.theme === 'dark' ? 'Tema terang' : 'Tema gelap'}
+            </MenuItem>
           </>
         )}
       </Menu>
-      <button type="button" className="btn" onClick={ui.toggleTheme} title="Ganti tema">
-        {ui.theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
-      </button>
       <button
         type="button"
         className="btn"

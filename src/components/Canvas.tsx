@@ -18,6 +18,7 @@ import { LinkEdge } from '@/components/edges/LinkEdge'
 import { DeviceNode } from '@/components/nodes/DeviceNode'
 import { GroupNode } from '@/components/nodes/GroupNode'
 import { NoteNode } from '@/components/nodes/NoteNode'
+import { WelcomeCard } from '@/components/WelcomeCard'
 import { useConsoleStore } from '@/store/useConsoleStore'
 import { useTopologyStore } from '@/store/useTopologyStore'
 import { useUiStore } from '@/store/useUiStore'
@@ -41,6 +42,8 @@ export function Canvas() {
   const wrapper = useRef<HTMLDivElement>(null)
   const [menu, setMenu] = useState<ContextMenuState | null>(null)
   const openConsole = useConsoleStore((s) => s.openFor)
+  // Saat konsol terbuka kanvas jadi pendek; minimap disembunyikan agar tidak menutupi perangkat.
+  const consoleOpen = useConsoleStore((s) => s.open)
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -123,15 +126,19 @@ export function Canvas() {
       >
         <Background variant={BackgroundVariant.Dots} gap={gridSize} size={1} color="var(--dot)" />
         <Controls showInteractive={false} position="bottom-left" />
-        <MiniMap
-          position="bottom-right"
-          pannable
-          zoomable
-          nodeColor={minimapColor}
-          maskColor="rgb(15 23 42 / 0.14)"
-          style={{ width: 180, height: 120 }}
-        />
+        {consoleOpen ? null : (
+          <MiniMap
+            position="bottom-right"
+            pannable
+            zoomable
+            nodeColor={minimapColor}
+            maskColor="rgb(15 23 42 / 0.14)"
+            style={{ width: 180, height: 120 }}
+          />
+        )}
       </ReactFlow>
+
+      <WelcomeCard />
 
       {menu ? (
         <div

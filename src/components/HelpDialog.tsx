@@ -21,6 +21,7 @@ const SHORTCUTS: [string, string][] = [
 export function HelpDialog() {
   const open = useUiStore((s) => s.helpOpen)
   const setUi = useUiStore((s) => s.set)
+  const setWelcome = useUiStore((s) => s.setWelcome)
   if (!open) return null
 
   return (
@@ -62,6 +63,19 @@ export function HelpDialog() {
             layar.
           </li>
         </ul>
+      </section>
+
+      <section className="mb-4">
+        <button
+          type="button"
+          className="btn"
+          onClick={() => {
+            setUi('helpOpen', false)
+            setWelcome(true)
+          }}
+        >
+          Tampilkan lagi panduan awal
+        </button>
       </section>
 
       <section>

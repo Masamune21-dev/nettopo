@@ -5,6 +5,7 @@ import type { OutLine } from '@/lib/cli/types'
 import { type ConsoleSession, dialectOf, promptOf, useConsoleStore, withCtx } from '@/store/useConsoleStore'
 import { useTopologyStore } from '@/store/useTopologyStore'
 import { isDeviceNode } from '@/store/types'
+import { adaptQuick, DIALECT_SHORT, type QuickCommand, QUICK_COMMANDS } from './quickCommands'
 
 /** Warna terminal sengaja tetap gelap di tema terang maupun gelap, seperti terminal sungguhan. */
 const TERM_BG = '#0b1020'
@@ -122,46 +123,79 @@ function Terminal({ session }: { session: ConsoleSession }) {
     [clear, dialect, histIdx, interrupt, print, prompt, session, submit, value],
   )
 
+  const runQuick = (q: QuickCommand) => {
+    if (!dialect) return
+    const steps = adaptQuick(dialect.id, session.state.mode, q.cmd)
+    const last = steps.at(-1) ?? q.cmd
+    for (const c of q.insert ? steps.slice(0, -1) : steps) submit(session.id, c)
+    setValue(q.insert ? last : '')
+    setHistIdx(null)
+    input.current?.focus()
+  }
+  const locked = session.busy || Boolean(session.state.confirm)
+
   return (
-    <div
-      ref={scroller}
-      className="thin-scroll min-h-0 flex-1 overflow-auto px-3 py-2 font-mono text-[12px] leading-[1.45]"
-      style={{ background: TERM_BG, whiteSpace: 'pre' }}
-      onMouseUp={() => {
-        if (!window.getSelection()?.toString()) input.current?.focus()
-      }}
-    >
-      {session.lines.map((l, i) => (
-        <Line key={i} line={l} />
-      ))}
-      {session.closed ? null : (
-        <div className="flex items-center" style={{ color: LINE_COLOR.echo, visibility: session.busy ? 'hidden' : 'visible' }}>
-          <span>{prompt}</span>
-          <input
-            ref={input}
-            value={value}
-            onChange={(e) => {
-              const next = e.target.value
-              // `?` di akhir baris memunculkan bantuan tanpa ikut masuk ke baris — seperti perangkat asli.
-              // Ditangani di sini juga (bukan cuma keydown) agar jalan di keyboard virtual dan IME.
-              if (next === `${value}?` && dialect && dialect.id !== 'linux' && !session.state.confirm && !session.busy) {
-                print(session.id, [{ text: `${prompt}${value}?`, kind: 'echo' }, ...helpLines(session, value)])
-                return
-              }
-              setValue(next)
-              setHistIdx(null)
-            }}
-            onKeyDown={onKeyDown}
-            className="min-w-0 flex-1 border-0 bg-transparent p-0 font-mono text-[12px] outline-none"
-            style={{ color: LINE_COLOR.echo, caretColor: '#a5b4fc' }}
-            spellCheck={false}
-            autoComplete="off"
-            autoCapitalize="off"
-            autoCorrect="off"
-            aria-label="Masukan perintah CLI"
-          />
+    <div className="flex min-h-0 flex-1 flex-col" style={{ background: TERM_BG }}>
+      {dialect && !session.closed ? (
+        <div className="thin-scroll flex shrink-0 items-center gap-1 overflow-x-auto border-b px-3 py-1.5" style={{ borderColor: '#1e293b' }}>
+          <span className="mr-1 shrink-0 text-[10.5px]" style={{ color: '#64748b' }}>
+            Coba:
+          </span>
+          {QUICK_COMMANDS[dialect.id].map((q) => (
+            <button
+              key={q.label}
+              type="button"
+              disabled={locked}
+              className="shrink-0 rounded-full border px-2 py-0.5 text-[11px] transition-colors hover:bg-white/10 disabled:opacity-40"
+              style={{ borderColor: '#334155', color: '#cbd5e1' }}
+              title={`${q.hint}\n${q.cmd.trim()}`}
+              onClick={() => runQuick(q)}
+            >
+              {q.label}
+            </button>
+          ))}
         </div>
-      )}
+      ) : null}
+      <div
+        ref={scroller}
+        className="thin-scroll min-h-0 flex-1 overflow-auto px-3 py-2 font-mono text-[12px] leading-[1.45]"
+        style={{ whiteSpace: 'pre' }}
+        onMouseUp={() => {
+          if (!window.getSelection()?.toString()) input.current?.focus()
+        }}
+      >
+        {session.lines.map((l, i) => (
+          <Line key={i} line={l} />
+        ))}
+        {session.closed ? null : (
+          <div className="flex items-center" style={{ color: LINE_COLOR.echo, visibility: session.busy ? 'hidden' : 'visible' }}>
+            <span>{prompt}</span>
+            <input
+              ref={input}
+              value={value}
+              onChange={(e) => {
+                const next = e.target.value
+                // `?` di akhir baris memunculkan bantuan tanpa ikut masuk ke baris — seperti perangkat asli.
+                // Ditangani di sini juga (bukan cuma keydown) agar jalan di keyboard virtual dan IME.
+                if (next === `${value}?` && dialect && dialect.id !== 'linux' && !session.state.confirm && !session.busy) {
+                  print(session.id, [{ text: `${prompt}${value}?`, kind: 'echo' }, ...helpLines(session, value)])
+                  return
+                }
+                setValue(next)
+                setHistIdx(null)
+              }}
+              onKeyDown={onKeyDown}
+              className="min-w-0 flex-1 border-0 bg-transparent p-0 font-mono text-[12px] outline-none"
+              style={{ color: LINE_COLOR.echo, caretColor: '#a5b4fc' }}
+              spellCheck={false}
+              autoComplete="off"
+              autoCapitalize="off"
+              autoCorrect="off"
+              aria-label="Masukan perintah CLI"
+            />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -194,6 +228,11 @@ function Tab({ session, active }: { session: ConsoleSession; active: boolean }) 
       <button type="button" className="flex items-center gap-1.5" onClick={() => setActive(session.id)} title={label}>
         <span className="size-1.5 rounded-full" style={{ background: session.closed ? '#ef4444' : '#22c55e' }} />
         <span className={`font-mono ${session.closed ? 'line-through' : ''}`}>{host ?? 'terputus'}</span>
+        {id ? (
+          <span className="rounded px-1 text-[9.5px] font-semibold" style={{ background: '#ffffff14', color: '#94a3b8' }}>
+            {DIALECT_SHORT[id]}
+          </span>
+        ) : null}
       </button>
       <button
         type="button"

@@ -67,7 +67,7 @@ karena kunci API-nya sengaja ditahan di sisi server.
 
 Saat pertama dibuka, aplikasi memuat contoh jaringan ISP dua POP — **23
 perangkat, 30 link** — yang bisa langsung diutak-atik atau dihapus lewat
-**Buka → Topologi baru**:
+**Buka → Topologi tersimpan / baru → Topologi baru**:
 
 - **Upstream ganda**: IIX peering dan transit internasional, masing-masing ke
   core yang berbeda
@@ -97,6 +97,11 @@ ada aturan pemeriksaan baru yang membuatnya gagal, itu ketahuan langsung.
 
 ## Cara pakai
 
+Saat pertama dibuka, kartu **Mulai di sini** di atas kanvas merangkum empat
+langkah dasar. Setelah ditutup, panel kanan tetap menampilkan **Cara cepat**
+(contekan klik, klik ganda, dan pintasan) selama tidak ada yang dipilih, dan
+kartunya bisa dibuka lagi dari situ atau dari dialog bantuan.
+
 1. **Seret perangkat** dari panel kiri ke kanvas (atau klik untuk menaruh di tengah).
 2. **Tarik kabel** dari kotak port kecil di sisi node ke port perangkat lain.
    Port yang sudah terpakai tidak bisa dipakai dua kali, dan bila kecepatan kedua
@@ -111,7 +116,8 @@ ada aturan pemeriksaan baru yang membuatnya gagal, itu ketahuan langsung.
    memeluk perangkat yang sama. Menu yang sama juga berisi **rata kiri/kanan/
    atas/bawah/tengah** dan **sebar merata** untuk objek yang sedang dipilih.
 6. **Simpan** menyimpan ke browser; ada juga autosave setiap 1,5 detik setelah
-   perubahan terakhir.
+   perubahan terakhir. Menu **Buka** berisi daftar topologi tersimpan (sekaligus
+   membuat topologi baru) dan impor file JSON.
 7. **Ekspor** ke PNG/SVG untuk laporan, JSON untuk cadangan, atau CSV untuk
    rekap. Ekspor CSV menghasilkan tiga berkas: `-perangkat.csv`, `-link.csv`,
    dan `-interface.csv` — yang terakhir berisi link-type, PVID, VLAN
@@ -145,8 +151,10 @@ Jumlah pikselnya ditulis di tombol; kalau lebih dari 100 px tombolnya berwarna
 kuning sebagai peringatan bahwa tata letak akan berubah terlihat. Semua bisa
 dibatalkan dengan `Cmd/Ctrl + Z`.
 
-Ukuran grid sendiri bisa diganti lewat menu **Grid** di toolbar: 8, 16
-(bawaan), 24, atau 32 px — sekaligus mengatur kerapatan titik latar.
+Ukuran grid sendiri bisa diganti lewat menu **Tampilan** di toolbar: 8, 16
+(bawaan), 24, atau 32 px — sekaligus mengatur kerapatan titik latar. Menu yang
+sama berisi pilihan nama port di ujung kabel, tempel ke grid, dan tema
+terang/gelap.
 
 Titik belok ikut tersimpan di file JSON. Auto-layout membuangnya karena posisi
 perangkat berubah — jumlah yang dibuang disebutkan di notifikasi.
@@ -365,6 +373,13 @@ tetangga LLDP/CDP (`display lldp neighbor brief`, `show cdp neighbors`,
 `/ip neighbor print`) semuanya dihitung dari kabel yang sama.
 
 ### Di dalam konsol
+
+Belum hafal sintaksnya? Baris **Coba:** di atas konsol berisi perintah yang
+paling sering dipakai untuk dialek itu — status port, alamat IP, VLAN,
+tetangga, routing, konfigurasi. Klik untuk langsung menjalankannya; perintah
+disesuaikan dengan mode saat itu (mis. `do show …` di mode konfigurasi IOS,
+`run show …` di Junos). **Ping…** hanya menyisipkan `ping ` supaya alamat
+tujuannya diisi sendiri.
 
 | Tombol | Aksi |
 |---|---|

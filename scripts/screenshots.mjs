@@ -34,8 +34,12 @@ const settle = (ms = 900) => page.waitForTimeout(ms)
 
 console.log(`Membuka ${URL} …`)
 await page.goto(URL, { waitUntil: 'networkidle' })
-// Mulai dari keadaan bersih supaya yang tampil selalu topologi contoh.
-await page.evaluate(() => localStorage.clear())
+// Mulai dari keadaan bersih supaya yang tampil selalu topologi contoh. Kartu
+// "Mulai di sini" ditandai sudah dibaca agar tidak menutupi kanvas di gambar.
+await page.evaluate(() => {
+  localStorage.clear()
+  localStorage.setItem('nettopo:welcome', 'done')
+})
 await page.reload({ waitUntil: 'networkidle' })
 await page.waitForSelector('.react-flow__node-device')
 await settle(2500)
