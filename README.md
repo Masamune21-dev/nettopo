@@ -1,5 +1,6 @@
 # NetTopo — Editor Topologi Jaringan
 
+[![CI](https://github.com/Masamune21-dev/nettopo/actions/workflows/ci.yml/badge.svg)](https://github.com/Masamune21-dev/nettopo/actions/workflows/ci.yml)
 [![Lisensi: MIT](https://img.shields.io/badge/Lisensi-MIT-blue.svg)](LICENSE)
 
 Aplikasi web untuk menggambar topologi jaringan sampai level **port-ke-port**,
@@ -7,7 +8,7 @@ dengan katalog perangkat yang sesuai jaringan ISP di Indonesia: **Juniper MX,
 switch & SSW Huawei, MikroTik CRS dan CCR**.
 
 Mendukung **link aggregation / bonding** — Eth-Trunk (Huawei), ae (Juniper),
-bond (MikroTik) — lengkap dengan daftar port anggotanya, serta **VLAN dan
+bond (MikroTik), Port-channel (Cisco) — lengkap dengan daftar port anggotanya, serta **VLAN dan
 link-type per interface** (access / trunk / hybrid / routed) seperti di
 perangkat aslinya.
 
@@ -50,6 +51,10 @@ memindahkannya antar komputer.
 | `npm test` | Menjalankan unit test |
 | `npm run test:watch` | Unit test mode watch |
 | `npm run lint` | Pemeriksaan gaya kode |
+
+Ketiga pemeriksaan — `npm run lint`, `npm test`, dan `npm run build` — juga
+dijalankan GitHub Actions di setiap push ke `main` dan setiap pull request
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 Hasil `npm run build` berupa berkas statis di `dist/`, jadi bisa ditaruh di
 web server mana pun (nginx, Apache, GitHub Pages) tanpa Node.js di sisi server.
@@ -110,7 +115,9 @@ ada aturan pemeriksaan baru yang membuatnya gagal, itu ketahuan langsung.
 7. **Ekspor** ke PNG/SVG untuk laporan, JSON untuk cadangan, atau CSV untuk
    rekap. Ekspor CSV menghasilkan tiga berkas: `-perangkat.csv`, `-link.csv`,
    dan `-interface.csv` — yang terakhir berisi link-type, PVID, VLAN
-   tagged/untagged, dan IP setiap interface.
+   tagged/untagged, IP, dan status shutdown setiap interface.
+8. **Klik ganda perangkat** untuk membuka CLI-nya, lalu atur dan uji jaringan
+   dengan perintah aslinya — lihat [CLI perangkat](#cli-perangkat-seperti-packet-tracer).
 
 ### Menggeser kabel
 
@@ -201,6 +208,9 @@ sendiri di panel kanan:
   interface-nya — jadi tidak perlu mengetik dua kali.
 - **Isi massal:** centang banyak port sekaligus, klik **VLAN**, isi sekali,
   lalu **Terapkan** — praktis untuk switch 48 port.
+- Tombol **⏻** di tiap baris port mematikannya (`shutdown`). Port yang mati
+  dicoret merah di node, dan kabelnya digambar putus-putus berlabel
+  **shutdown** — sama seperti bila dimatikan lewat CLI.
 - Pemeriksaan otomatis menandai: daftar VLAN yang tidak sah, port access yang
   VLAN-nya kosong, PVID di luar daftar tagged, link-type berbeda di dua ujung
   link, dan VLAN yang hanya ada di satu sisi.
@@ -216,6 +226,7 @@ sendiri di panel kanan:
    | Huawei (VRP) | `Eth-Trunk1`, `Eth-Trunk2`, … |
    | Juniper (Junos) | `ae0`, `ae1`, … |
    | MikroTik (RouterOS) | `bond1`, `bond2`, … |
+   | Cisco (IOS) | `Port-channel1`, `Port-channel2`, … |
    | Lainnya | `lag1`, `lag2`, … |
 
 3. Di kanvas, trunk muncul sebagai **satu interface logis** (kotak lebar
@@ -251,7 +262,10 @@ seleksi kotak, drag tengah/kanan untuk menggeser.
 Setiap perangkat aktif punya konsol CLI sendiri. **Klik ganda perangkat** di
 kanvas (atau klik kanan → *Buka CLI*, atau tombol **CLI** di toolbar dan panel
 kanan), dan konsolnya terbuka di bawah kanvas — satu tab per perangkat,
-seperti jendela CLI di Cisco Packet Tracer.
+seperti jendela CLI di Cisco Packet Tracer. Tinggi konsol bisa diatur dengan
+menyeret tepi atasnya.
+
+![Konsol CLI: rute statis dipasang lewat VRP dan Junos, lalu tracert dan ping lintas dua hop](docs/img/07-cli.png)
 
 Dialeknya mengikuti OS perangkat:
 
@@ -275,6 +289,41 @@ Error: The interface is a Layer 2 port and cannot be assigned an IP address.
 [SW-ACC-JKT-01-GigabitEthernet0/0/10]undo portswitch
 [SW-ACC-JKT-01-GigabitEthernet0/0/10]ip address 10.9.0.1 30
 ```
+
+### Coba sendiri di topologi contoh
+
+Ping lintas dua hop — dari SSW-JKT-01 ke MX204-BDG-01 lewat MX204-CORE-01 —
+memperlihatkan cara kerja simulasinya dalam empat langkah:
+
+1. Buka CLI **SSW-JKT-01** dan jalankan `ping 10.255.0.5`. Itu tetangga satu
+   /30 (MX204-CORE-01), jadi langsung dijawab.
+2. `ping 10.255.2.2` gagal: SSW tidak punya rute ke subnet Jakarta–Bandung.
+   Tambahkan rute statisnya:
+
+   ```text
+   <SSW-JKT-01>system-view
+   [SSW-JKT-01]ip route-static 10.255.2.0 30 10.255.0.5
+   [SSW-JKT-01]return
+   ```
+
+3. Ping masih gagal — paketnya sampai, tapi **MX204-BDG-01 tidak tahu jalan
+   pulang**. Buka CLI-nya dan pasang rute balik (Junos baru berlaku setelah
+   `commit`):
+
+   ```text
+   admin@MX204-BDG-01> configure
+   admin@MX204-BDG-01# set routing-options static route 10.255.0.4/30 next-hop 10.255.2.1
+   admin@MX204-BDG-01# commit and-quit
+   ```
+
+4. Kembali ke SSW-JKT-01: `ping 10.255.2.2` sekarang dijawab, dan
+   `tracert 10.255.2.2` menunjukkan dua hop — `10.255.0.5` lalu `10.255.2.2`.
+   Rute statis tadi juga muncul di panel kanan kedua perangkat.
+
+Coba juga `int 100GE1/0/1` → `shutdown` di SSW-JKT-01: kabelnya ke
+MX204-CORE-01 langsung tergambar putus, dan ping ke `10.255.0.5` gagal dengan
+penjelasan interface mana yang mati. `Cmd/Ctrl + Z` di kanvas
+mengembalikannya.
 
 ### CLI dan kanvas memakai data yang sama
 
@@ -588,6 +637,14 @@ node scripts/screenshots.mjs
 Skrip memakai Chrome yang sudah terpasang di sistem, jadi tidak perlu mengunduh
 browser terpisah. Playwright sengaja tidak dijadikan dependensi tetap karena
 hanya dibutuhkan saat memperbarui dokumentasi.
+
+Gambar asisten AI dibuat dengan menjalankan AI sungguhan, sehingga topologi
+contoh terkirim ke endpoint di `.env`. Untuk memperbarui gambar lain saja
+tanpa memanggil AI, gambar lama dibiarkan apa adanya:
+
+```bash
+NETTOPO_SKIP_AI=1 node scripts/screenshots.mjs
+```
 
 ---
 

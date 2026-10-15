@@ -8,6 +8,10 @@
  *   npm run dev                       # di terminal lain
  *   npm install --no-save playwright
  *   node scripts/screenshots.mjs
+ *
+ * Gambar asisten AI dibuat dengan menjalankan AI sungguhan — topologi contoh
+ * terkirim ke endpoint di .env. Set NETTOPO_SKIP_AI=1 untuk melewatinya dan
+ * memakai gambar yang sudah ada.
  */
 import { chromium } from 'playwright'
 import { mkdir } from 'node:fs/promises'
@@ -113,32 +117,79 @@ await shot('05-alamat-ip')
 await closeDialog()
 
 /* 6. Asisten AI — dijalankan sungguhan supaya yang tampil hasil, bukan borang kosong */
-await page.evaluate(() => {
-  ;[...document.querySelectorAll('header button')].find((b) => /Asisten AI/.test(b.title))?.click()
-})
-await settle(2500)
-
-const punyaModel = await page.evaluate(() => Boolean(document.querySelector('#ai-model')?.value))
-if (punyaModel) {
+if (process.env.NETTOPO_SKIP_AI) {
+  console.log('  – 06-asisten-ai dilewati (NETTOPO_SKIP_AI)')
+} else {
   await page.evaluate(() => {
-    const run = [...document.querySelectorAll('[role=dialog] button')].find((b) =>
-      /Jalankan/.test(b.innerText),
-    )
-    run?.click()
+    ;[...document.querySelectorAll('header button')].find((b) => /Asisten AI/.test(b.title))?.click()
   })
-  // Tunggu sampai tombol "Batalkan" hilang, tanda prosesnya selesai.
-  await page
-    .waitForFunction(
-      () =>
-        ![...document.querySelectorAll('[role=dialog] button')].some((b) =>
-          /Batalkan/.test(b.innerText),
-        ),
-      { timeout: 100_000 },
-    )
-    .catch(() => console.log('  ! AI belum selesai dalam batas waktu, gambar diambil apa adanya'))
-  await settle(1000)
+  await settle(2500)
+
+  const punyaModel = await page.evaluate(() => Boolean(document.querySelector('#ai-model')?.value))
+  if (punyaModel) {
+    await page.evaluate(() => {
+      const run = [...document.querySelectorAll('[role=dialog] button')].find((b) =>
+        /Jalankan/.test(b.innerText),
+      )
+      run?.click()
+    })
+    // Tunggu sampai tombol "Batalkan" hilang, tanda prosesnya selesai.
+    await page
+      .waitForFunction(
+        () =>
+          ![...document.querySelectorAll('[role=dialog] button')].some((b) =>
+            /Batalkan/.test(b.innerText),
+          ),
+        { timeout: 100_000 },
+      )
+      .catch(() => console.log('  ! AI belum selesai dalam batas waktu, gambar diambil apa adanya'))
+    await settle(1000)
+  }
+  await shot('06-asisten-ai')
+  await closeDialog()
 }
-await shot('06-asisten-ai')
+
+/* 7. CLI — rute statis di dua perangkat, lalu tracert dan ping lintas dua hop */
+const CONSOLE = 'section[aria-label="Konsol CLI"]'
+const openCli = async (host) => {
+  await page.locator('.react-flow__node-device').filter({ hasText: host }).first().dispatchEvent('dblclick')
+  await page.waitForSelector(`${CONSOLE} input`)
+  await settle(400)
+}
+const cli = async (line, waitFor) => {
+  await page.keyboard.type(line)
+  await page.keyboard.press('Enter')
+  if (waitFor) {
+    await page.waitForFunction(
+      ([sel, text]) => document.querySelector(sel)?.innerText.includes(text),
+      [CONSOLE, waitFor],
+      { timeout: 15_000 },
+    )
+  }
+  await settle(300)
+}
+
+await openCli('MX204-BDG-01')
+// Konsol dibuat lebih tinggi supaya seluruh sesi masuk ke gambar.
+const grip = await page.locator(`${CONSOLE} > div.cursor-row-resize`).boundingBox()
+if (grip) {
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + 4)
+  await page.mouse.down()
+  await page.mouse.move(grip.x + grip.width / 2, grip.y - 170, { steps: 6 })
+  await page.mouse.up()
+}
+await cli('configure')
+await cli('set routing-options static route 10.255.0.4/30 next-hop 10.255.2.1')
+await cli('commit and-quit', 'Exiting configuration mode')
+
+await openCli('SSW-JKT-01')
+await cli('system-view')
+await cli('ip route-static 10.255.2.0 30 10.255.0.5')
+await cli('return')
+await cli('tracert 10.255.2.2', ' 2 10.255.2.2')
+await cli('ping -c 3 10.255.2.2', 'round-trip')
+await settle(600)
+await shot('07-cli')
 
 await browser.close()
 console.log('Selesai.')
